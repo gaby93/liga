@@ -106,6 +106,16 @@ create table public.eventos (
 );
 create index on public.eventos (jogo_id);
 
+-- Ficha de jogo: quem foi convocado por cada equipa
+-- (equipa_id guarda a equipa no momento do jogo, mesmo que o jogador mude depois)
+create table public.convocatorias (
+  jogo_id     uuid not null references public.jogos(id) on delete cascade,
+  jogador_id  uuid not null references public.jogadores(id) on delete cascade,
+  equipa_id   uuid not null references public.equipas(id) on delete cascade,
+  primary key (jogo_id, jogador_id)
+);
+create index on public.convocatorias (jogador_id);
+
 -- Sanções de pontos (ex.: -3 por falta de comparência)
 create table public.sancoes (
   id            uuid primary key default gen_random_uuid(),
@@ -138,7 +148,7 @@ alter table public.admins enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['competicoes','equipas','participantes','jogadores','jogos','eventos','sancoes'] loop
+  foreach t in array array['competicoes','equipas','participantes','jogadores','jogos','eventos','sancoes','convocatorias'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy "leitura publica" on public.%I for select using (true)', t);
     execute format(
@@ -231,4 +241,4 @@ create policy "media delete admin" on storage.objects
 
 -- ---------- Tempo real ----------
 
-alter publication supabase_realtime add table public.jogos, public.eventos;
+alter publication supabase_realtime add table public.jogos, public.eventos, public.convocatorias;

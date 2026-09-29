@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ListaJogos } from '../../componentes/ListaJogos';
 import { PartilharImagens } from '../../componentes/PartilharImagens';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
@@ -24,6 +24,7 @@ export default function CompeticaoDetalhe() {
   const d = useDadosCompeticao(id);
   const [todasEquipas, setTodasEquipas] = useState<Equipa[]>([]);
   const [erro, setErro] = useState<string | null>(null);
+  const [parametros, setParametros] = useSearchParams();
 
   useEffect(() => {
     supabase.from('equipas').select('*').order('nome').then(({ data }) => setTodasEquipas((data ?? []) as Equipa[]));
@@ -40,53 +41,104 @@ export default function CompeticaoDetalhe() {
     return true;
   };
 
+  const c = d.competicao;
+  const suspensos = d.suspensoes.size + [...d.jogadores.values()].filter((j) => j.suspenso && !d.suspensoes.has(j.id)).length;
+  const separadores: { id: Separador; rotulo: string; contador?: number }[] = [
+    { id: 'jogos', rotulo: 'Jogos' },
+    ...(c.formato === 'liga' ? [{ id: 'classificacao' as const, rotulo: 'Classificação' }] : []),
+    ...(c.formato === 'grupos' ? [{ id: 'classificacao' as const, rotulo: 'Grupos' }] : []),
+    ...(c.formato !== 'liga' ? [{ id: 'fase-final' as const, rotulo: c.formato === 'grupos' ? 'Fase final' : 'Quadro' }] : []),
+    { id: 'partilhar', rotulo: 'Partilhar' },
+    { id: 'disciplina', rotulo: 'Disciplina', contador: suspensos },
+    { id: 'configuracao', rotulo: 'Configuração' },
+  ];
+  // Sem equipas ou sem jogos, o trabalho começa na configuração
+  const pedido = parametros.get('separador') as Separador | null;
+  const atual = separadores.some((s) => s.id === pedido)
+    ? pedido!
+    : d.participantes.length < 2 ? 'configuracao' : 'jogos';
+  const abrir = (s: Separador) => setParametros({ separador: s }, { replace: true });
+
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-4xl font-bold">{d.competicao.nome}</h1>
-        {d.competicao.estado !== 'rascunho' && (
-          <Link to={`/c/${d.competicao.id}`} className="text-sm font-semibold text-relva hover:underline">Abrir página pública</Link>
+        <div>
+          <h1 className="font-display text-4xl font-bold">{c.nome}</h1>
+          <p className="text-sm text-tinta/60">
+            {[c.epoca, FORMATO_LABEL[c.formato], ESTADO_COMPETICAO_LABEL[c.estado]].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        {c.estado !== 'rascunho' && (
+          <Link to={`/c/${c.id}`} className="text-sm font-semibold text-relva hover:underline">Abrir página pública</Link>
         )}
       </div>
+
+      <nav className="-mb-2 flex gap-1 overflow-x-auto border-b border-linha" role="tablist" aria-label="Secções da competição">
+        {separadores.map((s) => (
+          <button key={s.id} type="button" role="tab" aria-selected={atual === s.id} onClick={() => abrir(s.id)}
+            className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold ${
+              atual === s.id ? 'border-relva text-relva' : 'border-transparent text-tinta/70 hover:text-tinta'}`}>
+            {s.rotulo}
+            {Boolean(s.contador) && (
+              <span className="rounded-full bg-vermelho px-1.5 text-xs leading-5 text-white" aria-label={`${s.contador} suspensos`}>
+                {s.contador}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
       {erro && <Aviso>{erro}</Aviso>}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Regras competicao={d.competicao} temJogos={d.jogos.length > 0} executar={executar} />
-        <Criterios competicao={d.competicao} executar={executar} />
-      </div>
+      {atual === 'jogos' && <Calendario d={d} executar={executar} />}
 
-      <Participantes d={d} todasEquipas={todasEquipas} executar={executar} />
-
-      <Calendario d={d} executar={executar} />
-
-      {d.competicao.formato !== 'liga' && <FaseFinal d={d} executar={executar} />}
-
-      <PartilharImagens d={d} />
-
-      <Suspensoes d={d} />
-
-      <Sancoes d={d} executar={executar} />
-
-      {d.competicao.formato === 'liga' && (
-        <Seccao titulo="Tabela atual">
+      {atual === 'classificacao' && c.formato === 'liga' && (
+        <Seccao titulo="Classificação">
           <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} />
         </Seccao>
       )}
-      {d.competicao.formato === 'grupos' && d.grupos.length > 0 && (
-        <Seccao titulo="Tabelas dos grupos">
-          <div className="grid gap-6 lg:grid-cols-2">
-            {d.grupos.map((g) => (
-              <div key={g.grupo}>
-                <h3 className="mb-1 font-display text-xl font-semibold">Grupo {g.grupo}</h3>
-                <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} apurados={d.competicao!.apurados_por_grupo} />
-              </div>
-            ))}
-          </div>
+      {atual === 'classificacao' && c.formato === 'grupos' && (
+        <Seccao titulo="Grupos">
+          {d.grupos.length === 0 ? (
+            <p className="text-sm text-tinta/70">Ainda não há grupos. Distribua as equipas no separador Configuração.</p>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {d.grupos.map((g) => (
+                <div key={g.grupo}>
+                  <h3 className="mb-1 font-display text-xl font-semibold">Grupo {g.grupo}</h3>
+                  <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} apurados={c.apurados_por_grupo} />
+                </div>
+              ))}
+            </div>
+          )}
         </Seccao>
+      )}
+
+      {atual === 'fase-final' && <FaseFinal d={d} executar={executar} />}
+
+      {atual === 'partilhar' && <PartilharImagens d={d} />}
+
+      {atual === 'disciplina' && (
+        <>
+          <Suspensoes d={d} />
+          <Sancoes d={d} executar={executar} />
+        </>
+      )}
+
+      {atual === 'configuracao' && (
+        <>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Regras competicao={c} temJogos={d.jogos.length > 0} executar={executar} />
+            <Criterios competicao={c} executar={executar} />
+          </div>
+          <Participantes d={d} todasEquipas={todasEquipas} executar={executar} />
+        </>
       )}
     </>
   );
 }
+
+type Separador = 'jogos' | 'classificacao' | 'fase-final' | 'partilhar' | 'disciplina' | 'configuracao';
 
 function Participantes({ d, todasEquipas, executar }: { d: Dados; todasEquipas: Equipa[]; executar: Executar }) {
   const c = d.competicao!;
@@ -356,6 +408,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
   const competicao = d.competicao!;
   const [o, setO] = useState({ inicio: '', hora: '15:00', intervaloMin: 60, diasEntreJornadas: 7, campo: '', substituir: false });
   const [aPartir, setAPartir] = useState<number | null>(null);
+  const [filtro, setFiltro] = useState<'porJogar' | 'jogados' | 'todos'>();
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
@@ -394,14 +447,31 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
       setAviso(`${alterar.length} ${alterar.length === 1 ? 'jogo ficou' : 'jogos ficaram'} com data marcada.`);
   });
 
+  const porFazer = d.jogos.filter((j) => j.estado === 'agendado' || j.estado === 'adiado');
+  const jogados = d.jogos.filter((j) => j.estado !== 'agendado' && j.estado !== 'adiado');
+  const visiveis = { porJogar: porFazer, jogados: [...jogados].reverse(), todos: d.jogos }[filtro ?? (porFazer.length ? 'porJogar' : 'todos')];
+
   return (
-    <Seccao titulo="Calendário" acao={
-      <Botao disabled={d.participantes.length < 2 || ocupado} onClick={gerar}>
-        {d.jogos.length ? 'Gerar calendário de novo' : 'Gerar calendário'}
-      </Botao>
-    }>
-      <div className="mb-6 rounded-md border border-linha p-4">
-        <h3 className="mb-1 font-display text-lg font-semibold">Datas e horários</h3>
+    <Seccao titulo="Jogos" acao={d.jogos.length > 0 && (
+      <div className="flex rounded-md border border-linha p-0.5 text-sm" role="radiogroup" aria-label="Mostrar jogos">
+        {([['porJogar', `Por jogar (${porFazer.length})`], ['jogados', `Jogados (${jogados.length})`], ['todos', 'Todos']] as const)
+          .map(([k, rotulo]) => {
+            const ativo = (filtro ?? (porFazer.length ? 'porJogar' : 'todos')) === k;
+            return (
+              <button key={k} type="button" role="radio" aria-checked={ativo} onClick={() => setFiltro(k)}
+                className={`rounded px-3 py-1.5 font-semibold ${ativo ? 'bg-relva text-white' : 'hover:bg-giz'}`}>
+                {rotulo}
+              </button>
+            );
+          })}
+      </div>
+    )}>
+      <details open={!d.jogos.length} className="group mb-6 rounded-md border border-linha">
+        <summary className="cursor-pointer list-none px-4 py-3 font-display text-lg font-semibold hover:bg-giz">
+          <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden>›</span>
+          {d.jogos.length ? 'Gerar calendário de novo e marcar datas' : 'Gerar calendário'}
+        </summary>
+        <div className="border-t border-linha p-4">
         <p className="mb-3 text-sm text-tinta/70">
           Com a data preenchida, o calendário é gerado já com dia, hora e campo. Num calendário existente,
           "Marcar datas" só mexe nos jogos agendados; resultados e jogos adiados ficam como estão.
@@ -427,19 +497,30 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
               onChange={(e) => setAPartir(e.target.value === '' ? null : Number(e.target.value))} />
           </Campo>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <Botao variante="secundario" disabled={!o.inicio || !d.jogos.length || ocupado} onClick={marcarDatas}>
-            Marcar datas nos jogos por jogar
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          {d.jogos.length > 0 && (
+            <>
+              <Botao disabled={!o.inicio || ocupado} onClick={marcarDatas}>Marcar datas nos jogos por jogar</Botao>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-relva" checked={o.substituir}
+                  onChange={(e) => setO({ ...o, substituir: e.target.checked })} />
+                Substituir datas já marcadas
+              </label>
+            </>
+          )}
+          <Botao variante={d.jogos.length ? 'perigo' : 'primario'} className="sm:ml-auto"
+            disabled={d.participantes.length < 2 || ocupado} onClick={gerar}>
+            {d.jogos.length ? 'Gerar calendário de novo (apaga os jogos)' : 'Gerar calendário'}
           </Botao>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="h-4 w-4 accent-relva" checked={o.substituir}
-              onChange={(e) => setO({ ...o, substituir: e.target.checked })} />
-            Substituir datas já marcadas
-          </label>
         </div>
-      </div>
+        {d.participantes.length < 2 && (
+          <p className="mt-2 text-xs text-tinta/60">Escolha pelo menos 2 equipas no separador Configuração.</p>
+        )}
+        </div>
+      </details>
       {aviso && <div className="mb-4"><Aviso tipo="info">{aviso}</Aviso></div>}
-      <ListaJogos jogos={d.jogos} equipas={d.equipas} linkPara={(j) => `/admin/jogos/${j.id}`} />
+      <ListaJogos jogos={visiveis} equipas={d.equipas} linkPara={(j) => `/admin/jogos/${j.id}`}
+        vazio={d.jogos.length ? 'Nenhum jogo neste filtro.' : 'Ainda não há calendário.'} />
     </Seccao>
   );
 }

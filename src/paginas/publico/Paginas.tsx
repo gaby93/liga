@@ -200,6 +200,9 @@ export function PaginaEquipa() {
                       {j.nome}
                       {(j.suspenso || d.suspensoes.has(j.id)) && <span className="ml-2 text-xs font-medium text-vermelho">Suspenso</span>}
                     </span>
+                    {est && est.jogos > 0 && (
+                      <span className="text-sm tabular-nums text-tinta/60" title="Jogos disputados">{est.jogos} {est.jogos === 1 ? 'jogo' : 'jogos'}</span>
+                    )}
                     {est && est.golos > 0 && (
                       <span className="text-sm tabular-nums" title="Golos">{est.golos} {est.golos === 1 ? 'golo' : 'golos'}</span>
                     )}
@@ -238,13 +241,14 @@ export function PaginaJogador() {
   if (!jogador) return <NaoEncontrado o="Este jogador não está inscrito em nenhuma equipa desta competição." />;
 
   const equipa = jogador.equipa_id ? d.equipas.get(jogador.equipa_id) : undefined;
-  const est = d.estatisticas.get(jogador.id) ?? { golos: 0, autogolos: 0, amarelos: 0, vermelhos: 0, jogosComEventos: 0 };
+  const est = d.estatisticas.get(jogador.id) ?? { golos: 0, autogolos: 0, amarelos: 0, vermelhos: 0, jogos: 0 };
   const lugarMarcadores = d.marcadores.findIndex((m) => m.jogador.id === jogador.id) + 1;
   const suspensao = d.suspensoes.get(jogador.id);
 
-  // Jogos em que o jogador tem golos ou cartões, por ordem do calendário
+  // Jogos em que foi convocado ou tem golos e cartões, por ordem do calendário
   const eventos = d.eventos.filter((e) => e.jogador_id === jogador.id);
-  const jogos = d.jogos.filter((j) => eventos.some((e) => e.jogo_id === j.id));
+  const convocado = new Set(d.convocatorias.filter((c) => c.jogador_id === jogador.id).map((c) => c.jogo_id));
+  const jogos = d.jogos.filter((j) => convocado.has(j.id) || eventos.some((e) => e.jogo_id === j.id));
 
   return (
     <div className="flex flex-col gap-8">
@@ -272,6 +276,7 @@ export function PaginaJogador() {
       )}
 
       <Numeros itens={[
+        ['Jogos', est.jogos],
         ['Golos', est.golos],
         ...(lugarMarcadores ? [['Lugar nos marcadores', `${lugarMarcadores}.º`] as [string, string]] : []),
         ['Amarelos', est.amarelos],
@@ -280,9 +285,9 @@ export function PaginaJogador() {
       ]} />
 
       <section>
-        <h3 className="mb-2 font-display text-2xl font-semibold">Golos e cartões por jogo</h3>
+        <h3 className="mb-2 font-display text-2xl font-semibold">Jogos</h3>
         {jogos.length === 0 ? (
-          <p className="text-sm text-tinta/70">Sem golos nem cartões nesta competição.</p>
+          <p className="text-sm text-tinta/70">Ainda sem jogos nesta competição.</p>
         ) : (
           <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
             {jogos.map((j) => <LinhaJogoJogador key={j.id} jogo={j} d={d} eventos={eventos.filter((e) => e.jogo_id === j.id)} links={links} />)}

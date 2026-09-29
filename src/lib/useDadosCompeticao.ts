@@ -3,7 +3,8 @@ import { calcularClassificacao, calcularFairPlay, type Linha } from './classific
 import { potenciaDe2 } from './formatos';
 import { mensagemErro, supabase } from './supabase';
 import { calcularSuspensoes, type SuspensaoAtiva } from './suspensoes';
-import type { Competicao, Equipa, Evento, Jogador, Jogo, Participante, Sancao } from './types';
+import { jogosDisputados } from './fichas';
+import type { Competicao, Convocatoria, Equipa, Evento, Jogador, Jogo, Participante, Sancao } from './types';
 
 export interface Marcador {
   jogador: Jogador;
@@ -21,8 +22,8 @@ export interface EstatisticasJogador {
   autogolos: number;
   amarelos: number;
   vermelhos: number;
-  /** Jogos em que o jogador tem golos ou cartões (não há registo de convocatórias). */
-  jogosComEventos: number;
+  /** Jogos disputados: convocado na ficha de um jogo terminado. */
+  jogos: number;
 }
 
 export interface DadosCompeticao {
@@ -33,6 +34,7 @@ export interface DadosCompeticao {
   jogos: Jogo[];
   eventos: Evento[];
   sancoes: Sancao[];
+  convocatorias: Convocatoria[];
   /** Tabela do formato liga (vazia nos outros formatos). */
   tabela: Linha[];
   /** Tabelas da fase de grupos, por ordem de grupo. */
@@ -57,11 +59,12 @@ interface Base {
   jogos: Jogo[];
   eventos: Evento[];
   sancoes: Sancao[];
+  convocatorias: Convocatoria[];
 }
 
 const vazio: Base = {
   competicao: null, participantes: [], equipas: new Map(), jogadores: new Map(),
-  jogos: [], eventos: [], sancoes: [],
+  jogos: [], eventos: [], sancoes: [], convocatorias: [],
 };
 
 /** Carrega tudo o que uma competição precisa e mantém-se atualizado em tempo real. */
@@ -73,15 +76,16 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
   const recarregar = useCallback(async () => {
     if (!id) return;
     try {
-      const [c, p, j, s, ev] = await Promise.all([
+      const [c, p, j, s, ev, cv] = await Promise.all([
         supabase.from('competicoes').select('*').eq('id', id).single(),
         supabase.from('participantes').select('ordem_sorteio, grupo, posicao_quadro, equipa:equipas(*)').eq('competicao_id', id),
         supabase.from('jogos').select('*').eq('competicao_id', id)
           .order('jornada').order('data_hora', { nullsFirst: false }),
         supabase.from('sancoes').select('*').eq('competicao_id', id),
         supabase.from('eventos').select('*, jogos!inner(competicao_id)').eq('jogos.competicao_id', id),
+        supabase.from('convocatorias').select('jogo_id, jogador_id, equipa_id, jogos!inner(competicao_id)').eq('jogos.competicao_id', id),
       ]);
-      const falha = [c, p, j, s, ev].find((r) => r.error);
+      const falha = [c, p, j, s, ev, cv].find((r) => r.error);
       if (falha) throw falha.error;
 
       const linhas = (p.data ?? []) as unknown as (Omit<Participante, 'equipa_id'> & { equipa: Equipa })[];
@@ -103,6 +107,7 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
         jogos: j.data as Jogo[],
         eventos: (ev.data ?? []).map(({ jogos: _j, ...e }) => e as Evento),
         sancoes: s.data as Sancao[],
+        convocatorias: (cv.data ?? []).map(({ jogos: _j, ...x }) => x as Convocatoria),
       });
       setErro(null);
     } catch (e) {
@@ -127,6 +132,7 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
       .channel(`competicao-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jogos', filter: `competicao_id=eq.${id}` }, agendar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, agendar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'convocatorias' }, agendar)
       .subscribe();
 
     // Plano B: se o tempo real falhar (ex.: limite de ligações), atualiza a cada 30 s
@@ -181,17 +187,21 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
 
   const { marcadores, disciplina, estatisticas } = useMemo(() => {
     const estatisticas = new Map<string, EstatisticasJogador>();
+    const de = (id: string) => {
+      const s = estatisticas.get(id) ?? { golos: 0, autogolos: 0, amarelos: 0, vermelhos: 0, jogos: 0 };
+      estatisticas.set(id, s);
+      return s;
+    };
     for (const e of base.eventos) {
       if (!e.jogador_id || !base.jogadores.has(e.jogador_id)) continue;
-      const s = estatisticas.get(e.jogador_id) ?? { golos: 0, autogolos: 0, amarelos: 0, vermelhos: 0, jogosComEventos: 0 };
+      const s = de(e.jogador_id);
       if (e.tipo === 'golo') s.golos++;
       else if (e.tipo === 'autogolo') s.autogolos++;
       else if (e.tipo === 'amarelo') s.amarelos++;
       else s.vermelhos++;
-      estatisticas.set(e.jogador_id, s);
     }
-    for (const [id, s] of estatisticas)
-      s.jogosComEventos = new Set(base.eventos.filter((e) => e.jogador_id === id).map((e) => e.jogo_id)).size;
+    for (const [id, n] of jogosDisputados(base.jogos, base.convocatorias))
+      if (base.jogadores.has(id)) de(id).jogos = n;
 
     const lista = [...estatisticas].map(([id, s]) => ({ jogador: base.jogadores.get(id)!, ...s }));
     return {

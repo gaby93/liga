@@ -43,8 +43,8 @@ planos gratuitos.
    O calendário é substituído numa só transação, por isso um erro nunca deixa
    a competição sem jogos.
 4. Mudar o estado para **Em curso**: a competição passa a aparecer no portal.
-5. Em cada jogo, lançar o resultado, os golos e os cartões. O portal atualiza
-   sozinho.
+5. Em cada jogo, preencher a **ficha de jogo** (quem joga), lançar o resultado,
+   os golos e os cartões. O portal atualiza sozinho.
 6. Para remarcar a época a meio (ex.: pausa de duas semanas), use **Marcar
    datas nos jogos por jogar** a partir da jornada certa. Só os jogos agendados
    mudam.
@@ -73,8 +73,24 @@ do calendário.
 - **Página de equipa** (clicar no nome em qualquer tabela ou jogo): posição,
   números da época, próximo jogo, plantel com golos e cartões, e todos os jogos.
 - **Página de jogador** (a partir do plantel ou dos marcadores): golos, lugar
-  nos marcadores, cartões, suspensão em curso e os golos e cartões jogo a jogo.
-  Como não se registam convocatórias, só aparecem os jogos com golos ou cartões.
+  nos marcadores, cartões, suspensão em curso e os jogos disputados, com os
+  golos e cartões de cada um.
+
+## Fichas de jogo
+
+Na página de cada jogo, a **ficha de jogo** regista quem joga por cada equipa.
+Cada alteração fica gravada logo.
+
+- **Copiar do jogo anterior** marca quem jogou no último jogo da equipa.
+  **Todos os disponíveis** marca o plantel inteiro. Em ambos, os suspensos
+  ficam de fora.
+- Os suspensos (por cartões ou por decisão da organização) aparecem
+  bloqueados, com o motivo.
+- Nos golos e cartões, só aparecem os convocados da equipa.
+- Há aviso quando um suspenso ficou na ficha, ou quando alguém tem golos ou
+  cartões sem estar na ficha.
+- Estar na ficha de um jogo terminado conta como jogo disputado (num W.O.
+  ninguém jogou). Aparece nas páginas de jogador e de equipa.
 
 ## Imagens para partilhar
 
@@ -113,6 +129,7 @@ ordem, os ficheiros:
 
 1. `supabase/migracoes/2026-09-29_calendario_suspensoes.sql`
 2. `supabase/migracoes/2026-09-29_formatos.sql`
+3. `supabase/migracoes/2026-09-30_fichas_jogo.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 
@@ -166,6 +183,7 @@ src/lib/calendario.ts            gerador de jornadas (método do círculo) e dat
 src/lib/suspensoes.ts            suspensões por cartões
 src/lib/formatos.ts              grupos, quadro de eliminatórias e rondas seguintes
 src/lib/partilha.ts              imagens e texto para partilhar
+src/lib/fichas.ts                fichas de jogo: copiar a anterior, jogos disputados
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores
 src/paginas/admin/               backoffice

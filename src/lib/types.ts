@@ -127,3 +127,9 @@ export interface Sancao {
   pontos: number;
   motivo: string | null;
 }
+
+export interface Convocatoria {
+  jogo_id: string;
+  jogador_id: string;
+  equipa_id: string;
+}

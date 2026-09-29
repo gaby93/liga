@@ -46,7 +46,7 @@ export interface ResultadoSuspensoes {
 const REALIZADO: ReadonlySet<EstadoJogo> = new Set(['terminado', 'wo_casa', 'wo_fora']);
 
 /** Ordem pela jornada (e pela data dentro da jornada), que é a ordem em que a liga avança. */
-const porJornada = (a: JogoSusp, b: JogoSusp) =>
+export const porJornada = (a: JogoSusp, b: JogoSusp) =>
   a.jornada - b.jornada || (a.data_hora ?? '').localeCompare(b.data_hora ?? '') || a.id.localeCompare(b.id);
 
 /**
