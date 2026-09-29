@@ -3,6 +3,7 @@ import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { ListaJogos, Placar } from '../../componentes/ListaJogos';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
+import { TabelaMelhores } from '../../componentes/TabelaMelhores';
 import { Carregando, Emblema } from '../../componentes/ui';
 import { resultadoEfetivo } from '../../lib/classificacao';
 import { formatarData } from '../../lib/datas';
@@ -40,6 +41,8 @@ export function PaginaTabela() {
         <p className="text-xs text-tinta/60">
           A linha verde marca as posições que dão acesso à fase final.
         </p>
+        <TabelaMelhores linhas={d.melhores} posicao={d.competicao!.apurados_por_grupo + 1} equipas={d.equipas}
+          linkEquipa={links.equipa} desigual={new Set(d.grupos.map((g) => g.linhas.length)).size > 1} />
       </div>
     );
   }
@@ -58,7 +61,7 @@ export function PaginaFaseFinal() {
           : 'O quadro ainda não foi sorteado.'}
       </p>
     );
-  return <QuadroEliminatorias quadro={d.quadro} jogos={d.jogos} equipas={d.equipas} linkEquipa={links.equipa} />;
+  return <QuadroEliminatorias quadro={d.quadro} jogos={d.jogos} equipas={d.equipas} golosWO={d.competicao?.golos_wo ?? 3} linkEquipa={links.equipa} />;
 }
 
 export function PaginaJogos() {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { calcularClassificacao, calcularFairPlay, type Linha } from './classificacao';
-import { potenciaDe2 } from './formatos';
+import { ordenarMelhores, potenciaDe2, type LinhaMelhor } from './formatos';
 import { mensagemErro, supabase } from './supabase';
 import { calcularSuspensoes, type SuspensaoAtiva } from './suspensoes';
 import { jogosDisputados } from './fichas';
@@ -39,6 +39,8 @@ export interface DadosCompeticao {
   tabela: Linha[];
   /** Tabelas da fase de grupos, por ordem de grupo. */
   grupos: { grupo: string; linhas: Linha[] }[];
+  /** Ranking dos melhores classificados abaixo dos apurados (melhores terceiros), com quem passa. */
+  melhores: { linha: LinhaMelhor; apurado: boolean }[];
   /** Quadro da fase final: posição → equipa (null = lugar vazio). Vazio se ainda não foi gerado. */
   quadro: (string | null)[];
   estatisticas: Map<string, EstatisticasJogador>;
@@ -147,9 +149,9 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
     };
   }, [id, recarregar]);
 
-  const { tabela, grupos } = useMemo(() => {
+  const { tabela, grupos, melhores } = useMemo(() => {
     const c = base.competicao;
-    if (!c || c.formato === 'eliminatorias') return { tabela: [], grupos: [] };
+    if (!c || c.formato === 'eliminatorias') return { tabela: [], grupos: [], melhores: [] };
     const fairPlay = calcularFairPlay(base.eventos);
     // Só os jogos de campeonato contam para a tabela; os de eliminatória não
     const doCampeonato = base.jogos.filter((j) => j.eliminatoria == null);
@@ -166,15 +168,39 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
       fairPlay,
     });
 
-    if (c.formato === 'liga') return { tabela: classificar(base.participantes, doCampeonato), grupos: [] };
+    if (c.formato === 'liga') return { tabela: classificar(base.participantes, doCampeonato), grupos: [], melhores: [] };
     const nomes = [...new Set(base.participantes.map((p) => p.grupo).filter((g): g is string => Boolean(g)))].sort();
-    return {
-      tabela: [],
-      grupos: nomes.map((g) => ({
-        grupo: g,
-        linhas: classificar(base.participantes.filter((p) => p.grupo === g), doCampeonato.filter((j) => j.grupo === g)),
-      })),
-    };
+    const grupos = nomes.map((g) => ({
+      grupo: g,
+      linhas: classificar(base.participantes.filter((p) => p.grupo === g), doCampeonato.filter((j) => j.grupo === g)),
+    }));
+
+    // Melhores classificados logo abaixo dos apurados (ex.: melhores terceiros)
+    const k = c.apurados_por_grupo;
+    let melhores: { linha: LinhaMelhor; apurado: boolean }[] = [];
+    if (c.melhores_terceiros > 0 && grupos.length) {
+      const menor = Math.min(...grupos.map((g) => g.linhas.length));
+      const candidatos = grupos.flatMap((g) => {
+        const cand = g.linhas[k];
+        if (!cand) return [];
+        let conta = cand;
+        // Grupos maiores: descontam-se os jogos contra os últimos, para comparar
+        // equipas com o mesmo número de jogos (como a UEFA)
+        const ficam = g.linhas.slice(0, menor).map((l) => l.equipaId);
+        if (g.linhas.length > menor && ficam.includes(cand.equipaId)) {
+          const t = classificar(base.participantes.filter((p) => ficam.includes(p.equipa_id)),
+            doCampeonato.filter((j) => j.grupo === g.grupo));
+          conta = t.find((l) => l.equipaId === cand.equipaId) ?? cand;
+        }
+        return [{
+          equipaId: cand.equipaId, nome: cand.nome, grupo: g.grupo, pts: conta.pts, dg: conta.dg, gm: conta.gm,
+          v: conta.v, fairPlay: conta.fairPlay,
+          sorteio: base.participantes.find((p) => p.equipa_id === cand.equipaId)?.ordem_sorteio ?? null,
+        }];
+      });
+      melhores = ordenarMelhores(candidatos).map((linha, i) => ({ linha, apurado: i < c.melhores_terceiros }));
+    }
+    return { tabela: [], grupos, melhores };
   }, [base]);
 
   // Posição de cada equipa no quadro da fase final (null = lugar vazio)
@@ -221,5 +247,5 @@ export function useDadosCompeticao(id: string | undefined): DadosCompeticao {
     }).ativas;
   }, [base]);
 
-  return { ...base, tabela, grupos, quadro, marcadores, disciplina, estatisticas, suspensoes, carregando, erro, recarregar };
+  return { ...base, tabela, grupos, melhores, quadro, marcadores, disciplina, estatisticas, suspensoes, carregando, erro, recarregar };
 }

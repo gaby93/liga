@@ -4,10 +4,11 @@ import { ListaJogos } from '../../componentes/ListaJogos';
 import { PartilharImagens } from '../../componentes/PartilharImagens';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
+import { TabelaMelhores } from '../../componentes/TabelaMelhores';
 import { Aviso, Botao, Campo, Carregando, Entrada, Seccao, Seletor } from '../../componentes/ui';
 import { atribuirDatas } from '../../lib/calendario';
 import {
-  nomeEliminatoria, nomesGrupos, planearCalendario, planearFaseFinal, planearProximaRonda, sortearGrupos,
+  nomeEliminatoria, nomesGrupos, planearCalendario, planearFaseFinal, planearProximaRonda, regrasDaCompeticao, sortearGrupos,
   type JogoPlaneado,
 } from '../../lib/formatos';
 import { mensagemErro, supabase } from '../../lib/supabase';
@@ -109,6 +110,12 @@ export default function CompeticaoDetalhe() {
                   <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} apurados={c.apurados_por_grupo} />
                 </div>
               ))}
+            </div>
+          )}
+          {d.melhores.length > 0 && (
+            <div className="mt-8">
+              <TabelaMelhores linhas={d.melhores} posicao={c.apurados_por_grupo + 1} equipas={d.equipas}
+                desigual={new Set(d.grupos.map((g) => g.linhas.length)).size > 1} />
             </div>
           )}
         </Seccao>
@@ -215,7 +222,8 @@ function FaseFinal({ d, executar }: { d: Dados; executar: Executar }) {
   const eliminatorias = d.jogos.filter((j) => j.eliminatoria != null);
   const deGrupos = d.jogos.filter((j) => j.eliminatoria == null);
   const porJogar = deGrupos.filter((j) => j.estado === 'agendado' || j.estado === 'adiado').length;
-  const proxima = planearProximaRonda(d.jogos, d.quadro);
+  const regras = regrasDaCompeticao(c);
+  const proxima = planearProximaRonda(d.jogos, d.quadro, regras);
 
 
   const gerarFaseFinal = async () => {
@@ -226,6 +234,8 @@ function FaseFinal({ d, executar }: { d: Dados; executar: Executar }) {
       d.grupos.map((g) => ({ grupo: g.grupo, equipas: g.linhas.map((l) => l.equipaId) })),
       c.apurados_por_grupo,
       Math.max(0, ...deGrupos.map((j) => j.jornada)),
+      regras,
+      d.melhores.filter((m) => m.apurado).map((m) => m.linha.equipaId),
     );
     if ('erro' in plano) return setAviso(plano.erro);
     if (await executar(() => supabase.rpc('gerar_calendario', {
@@ -237,7 +247,7 @@ function FaseFinal({ d, executar }: { d: Dados; executar: Executar }) {
     if (!proxima) return;
     setAviso(null);
     if (proxima.porDecidir) {
-      setAviso(`Ainda ${proxima.porDecidir === 1 ? 'falta decidir 1 jogo' : `faltam decidir ${proxima.porDecidir} jogos`}. Um empate precisa do resultado dos penáltis.`);
+      setAviso(`Ainda ${proxima.porDecidir === 1 ? 'falta decidir 1 jogo' : `faltam decidir ${proxima.porDecidir} jogos`}. Um empate precisa do resultado dos penáltis (nas duas mãos, na ficha da 2.ª mão).`);
       return;
     }
     if (await executar(() => supabase.from('jogos').insert(proxima.jogos.map((j) => ({ competicao_id: c.id, ...paraBase(j) })))))
@@ -266,7 +276,8 @@ function FaseFinal({ d, executar }: { d: Dados; executar: Executar }) {
       )}
       {aviso && <div className="mb-4"><Aviso tipo="info">{aviso}</Aviso></div>}
       {d.quadro.length > 0 ? (
-        <QuadroEliminatorias quadro={d.quadro} jogos={d.jogos} equipas={d.equipas} linkJogo={(j) => `/admin/jogos/${j.id}`} />
+        <QuadroEliminatorias quadro={d.quadro} jogos={d.jogos} equipas={d.equipas} golosWO={c.golos_wo}
+          linkJogo={(j) => `/admin/jogos/${j.id}`} />
       ) : c.formato === 'eliminatorias' && (
         <p className="text-sm text-tinta/70">Gere o calendário para sortear o quadro.</p>
       )}
@@ -280,7 +291,7 @@ type Dados = ReturnType<typeof useDadosCompeticao>;
 /** Jogo planeado → colunas da tabela jogos. */
 const paraBase = (j: JogoPlaneado & { dataHora?: string | null }, campo?: string) => ({
   jornada: j.jornada, casa_id: j.casaId, fora_id: j.foraId, grupo: j.grupo ?? null,
-  eliminatoria: j.eliminatoria ?? null, chave: j.chave ?? null,
+  eliminatoria: j.eliminatoria ?? null, chave: j.chave ?? null, mao: j.mao ?? null,
   data_hora: j.dataHora ?? null, campo: campo || null,
 });
 
@@ -288,7 +299,7 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
   const [f, setF] = useState(competicao);
   useEffect(() => setF(competicao), [competicao]);
   const num = (k: 'pts_vitoria' | 'pts_empate' | 'pts_derrota' | 'golos_wo' | 'amarelos_suspensao' | 'jogos_suspensao_expulsao'
-    | 'num_grupos' | 'apurados_por_grupo') => ({
+    | 'num_grupos' | 'apurados_por_grupo' | 'melhores_terceiros') => ({
     type: 'number', value: f[k], onChange: (e: { target: { value: string } }) => setF({ ...f, [k]: Number(e.target.value) }),
   });
 
@@ -299,9 +310,11 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
       pts_derrota: f.pts_derrota, golos_wo: f.golos_wo, ida_volta: f.ida_volta,
       amarelos_suspensao: f.amarelos_suspensao, jogos_suspensao_expulsao: f.jogos_suspensao_expulsao,
       formato: f.formato, num_grupos: f.num_grupos, apurados_por_grupo: f.apurados_por_grupo,
+      melhores_terceiros: f.formato === 'grupos' ? f.melhores_terceiros : 0,
+      duas_maos: f.duas_maos, final_duas_maos: f.duas_maos && f.final_duas_maos, terceiro_lugar: f.terceiro_lugar,
     }).eq('id', competicao.id));
   };
-  const apuradosTotal = f.num_grupos * f.apurados_por_grupo;
+  const apuradosTotal = f.num_grupos * f.apurados_por_grupo + f.melhores_terceiros;
 
   return (
     <Seccao titulo="Regras">
@@ -323,11 +336,14 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
         {f.formato === 'grupos' && (
           <>
             <Campo rotulo="Número de grupos"><Entrada min={1} max={16} {...num('num_grupos')} /></Campo>
-            <Campo rotulo="Apurados por grupo"
+            <Campo rotulo="Apurados por grupo">
+              <Entrada min={1} {...num('apurados_por_grupo')} />
+            </Campo>
+            <Campo rotulo={`Melhores ${f.apurados_por_grupo + 1}.º classificados também passam`}
               ajuda={[2, 4, 8, 16, 32].includes(apuradosTotal)
                 ? `${apuradosTotal} equipas na fase final.`
                 : `${apuradosTotal} apurados: a fase final precisa de 2, 4, 8, 16 ou 32.`}>
-              <Entrada min={1} {...num('apurados_por_grupo')} />
+              <Entrada min={0} max={f.num_grupos} {...num('melhores_terceiros')} />
             </Campo>
           </>
         )}
@@ -349,9 +365,31 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
           </label>
         )}
         {f.formato !== 'liga' && (
-          <p className="col-span-2 text-xs text-tinta/60">
-            As eliminatórias jogam-se a um só jogo. Em caso de empate, registe os penáltis na ficha do jogo.
-          </p>
+          <fieldset className="col-span-2 flex flex-col gap-2 rounded-md border border-linha p-3">
+            <legend className="px-1 text-sm font-semibold">Eliminatórias</legend>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-relva" checked={f.duas_maos}
+                onChange={(e) => setF({ ...f, duas_maos: e.target.checked, final_duas_maos: e.target.checked && f.final_duas_maos })} />
+              A duas mãos (ida e volta, golos somados)
+            </label>
+            {f.duas_maos && (
+              <label className="ml-6 flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-relva" checked={f.final_duas_maos}
+                  onChange={(e) => setF({ ...f, final_duas_maos: e.target.checked })} />
+                A final também a duas mãos
+              </label>
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 accent-relva" checked={f.terceiro_lugar}
+                onChange={(e) => setF({ ...f, terceiro_lugar: e.target.checked })} />
+              Jogo do 3.º lugar (entre os derrotados das meias-finais)
+            </label>
+            <p className="text-xs text-tinta/60">
+              Empate {f.duas_maos ? 'no total das duas mãos' : 'no jogo'}: registe os penáltis na ficha
+              {f.duas_maos ? ' da 2.ª mão' : ' do jogo'}. {f.duas_maos && 'Não há regra dos golos fora.'}
+              {temJogos && ' Estas regras aplicam-se às rondas que ainda vão ser geradas.'}
+            </p>
+          </fieldset>
         )}
         <div className="col-span-2"><Botao type="submit">Guardar regras</Botao></div>
       </form>
@@ -425,7 +463,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
 
   const gerar = () => correr(async () => {
     if (d.jogos.length && !confirm(`Isto apaga os ${d.jogos.length} jogos existentes, com resultados e eventos. Continuar?`)) return;
-    const plano = planearCalendario(competicao.formato, d.participantes, competicao.ida_volta);
+    const plano = planearCalendario(competicao.formato, d.participantes, competicao.ida_volta, regrasDaCompeticao(competicao));
     if ('erro' in plano) { setAviso(plano.erro); return; }
     const datados = o.inicio ? atribuirDatas(plano.jogos, { ...opcoes, aPartirJornada: 1 }) : plano.jogos;
     const p_jogos = datados.map((j) => paraBase(j, o.campo));

@@ -57,6 +57,11 @@ export interface Competicao {
   formato: Formato;
   num_grupos: number;
   apurados_por_grupo: number;
+  /** Quantos dos melhores classificados logo abaixo dos apurados também passam (ex.: melhores terceiros). */
+  melhores_terceiros: number;
+  duas_maos: boolean;
+  final_duas_maos: boolean;
+  terceiro_lugar: boolean;
   amarelos_suspensao: number;
   jogos_suspensao_expulsao: number;
   criterios: Criterio[];
@@ -107,6 +112,8 @@ export interface Jogo {
   grupo: string | null;
   eliminatoria: number | null;
   chave: number | null;
+  /** 1.ª ou 2.ª mão (null num jogo único). */
+  mao: number | null;
   penaltis_casa: number | null;
   penaltis_fora: number | null;
 }

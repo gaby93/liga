@@ -2,6 +2,8 @@ import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { Aviso } from '../../componentes/ui';
 import type { Formato } from '../../lib/types';
 import { useDadosCompeticao } from '../../lib/useDadosCompeticao';
+import { useFavoritos } from '../../lib/favoritos';
+import { EstrelaFavorito } from './Inicio';
 
 const SEPARADORES: Record<Formato, { to: string; rotulo: string; end: boolean }[]> = {
   liga: [{ to: '', rotulo: 'Tabela', end: true }],
@@ -13,6 +15,7 @@ export default function PublicoLayout() {
   const { id } = useParams();
   const dados = useDadosCompeticao(id);
   const c = dados.competicao;
+  const { eFavorito, alternar } = useFavoritos();
   const separadores = [
     ...SEPARADORES[c?.formato ?? 'liga'],
     { to: 'jogos', rotulo: 'Jogos', end: false },
@@ -22,10 +25,16 @@ export default function PublicoLayout() {
   return (
     <div className="min-h-screen">
       <header className="relvado text-white">
-        <div className="mx-auto max-w-4xl px-4 pb-6 pt-8 sm:pt-12">
-          <h1 className="font-display text-5xl font-bold leading-[0.95] sm:text-7xl">
-            <Link to={`/c/${id}`} className="hover:underline">{c?.nome ?? '\u00a0'}</Link>
-          </h1>
+        <div className="mx-auto max-w-4xl px-4 pb-6 pt-4 sm:pt-6">
+          <Link to="/" className="mb-4 inline-block text-sm font-semibold text-white/85 hover:text-white hover:underline">
+            ‹ Todas as competições
+          </Link>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="font-display text-5xl font-bold leading-[0.95] sm:text-7xl">
+              <Link to={`/c/${id}`} className="hover:underline">{c?.nome ?? '\u00a0'}</Link>
+            </h1>
+            {c && <EstrelaFavorito ativo={eFavorito(c.id)} nome={c.nome} onClick={() => alternar(c.id)} clara />}
+          </div>
           {c && (
             <p className="mt-3 text-white/85">
               {[c.epoca && `Época ${c.epoca}`, c.estado === 'terminada' && 'Competição terminada'].filter(Boolean).join(', ')}

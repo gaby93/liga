@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Link, Navigate, NavLink, Outlet } from 'react-router-dom';
 import { Botao, Carregando } from '../../componentes/ui';
+import { usePapel } from '../../lib/sessao';
 import { supabase } from '../../lib/supabase';
-
-type Estado = 'a_verificar' | 'sem_sessao' | 'sem_permissao' | 'ok';
 
 const links = [
   { to: 'competicoes', rotulo: 'Competições' },
@@ -12,26 +10,13 @@ const links = [
 ];
 
 export default function AdminLayout() {
-  const [estado, setEstado] = useState<Estado>('a_verificar');
-
-  useEffect(() => {
-    const verificar = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return setEstado('sem_sessao');
-      const { data, error } = await supabase.rpc('is_admin');
-      setEstado(!error && data ? 'ok' : 'sem_permissao');
-    };
-    verificar();
-    // setTimeout evita chamar o Supabase dentro do callback de autenticação
-    const { data } = supabase.auth.onAuthStateChange(() => setTimeout(verificar, 0));
-    return () => data.subscription.unsubscribe();
-  }, []);
-
+  const papel = usePapel();
   const sair = () => supabase.auth.signOut();
 
-  if (estado === 'a_verificar') return <Carregando />;
-  if (estado === 'sem_sessao') return <Navigate to="/admin/login" replace />;
-  if (estado === 'sem_permissao')
+  if (!papel) return <Carregando />;
+  if (papel.tipo === 'sem_sessao') return <Navigate to="/entrar" replace />;
+  if (papel.tipo === 'responsavel') return <Navigate to="/equipa" replace />;
+  if (papel.tipo === 'sem_acesso')
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <p className="mb-4">Esta conta não tem permissão de administração. Peça a um administrador para a adicionar.</p>

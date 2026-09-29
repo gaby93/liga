@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AvisosApp } from './componentes/AvisosApp';
 import { configurado } from './lib/supabase';
 import AdminLayout from './paginas/admin/Layout';
 import CompeticaoDetalhe from './paginas/admin/CompeticaoDetalhe';
@@ -9,6 +10,7 @@ import Jogadores from './paginas/admin/Jogadores';
 import Login from './paginas/admin/Login';
 import Inicio from './paginas/publico/Inicio';
 import PublicoLayout from './paginas/publico/Layout';
+import AreaEquipa, { EscolherEquipa, FichaJogoEquipa, PainelEquipa } from './paginas/equipa/Area';
 import {
   PaginaEquipa, PaginaFaseFinal, PaginaJogador, PaginaJogos, PaginaMarcadores, PaginaTabela,
 } from './paginas/publico/Paginas';
@@ -34,7 +36,13 @@ export default function App() {
           <Route path="equipas/:equipaId" element={<PaginaEquipa />} />
           <Route path="jogadores/:jogadorId" element={<PaginaJogador />} />
         </Route>
-        <Route path="/admin/login" element={<Login />} />
+        <Route path="/entrar" element={<Login />} />
+        <Route path="/admin/login" element={<Navigate to="/entrar" replace />} />
+        <Route path="/equipa" element={<AreaEquipa />}>
+          <Route index element={<EscolherEquipa />} />
+          <Route path=":equipaId" element={<PainelEquipa />} />
+          <Route path=":equipaId/jogos/:jogoId" element={<FichaJogoEquipa />} />
+        </Route>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="competicoes" replace />} />
           <Route path="competicoes" element={<Competicoes />} />
@@ -45,6 +53,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <AvisosApp />
     </BrowserRouter>
   );
 }

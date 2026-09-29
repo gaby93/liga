@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   apurado, montarQuadro, nomeEliminatoria, ordemSementes, planearCalendario, planearFaseFinal,
-  planearProximaRonda, primeiraRonda, proximaRonda,
+  planearProximaRonda, primeiraRonda, proximaRonda, CHAVE_TERCEIRO, decidirEliminatoria, emJogos, nomeFase,
+  ordenarMelhores, precisaPenaltis,
   sementesDosGrupos, sortearGrupos, validarFaseFinal, vencedor, type JogoNoQuadro,
 } from './formatos';
 import type { EstadoJogo } from './types';
@@ -9,7 +10,7 @@ import type { EstadoJogo } from './types';
 const jogo = (eliminatoria: number, chave: number, casa: string, fora: string,
   gc: number | null, gf: number | null, extra: Partial<JogoNoQuadro> = {}): JogoNoQuadro => ({
   eliminatoria, chave, casa_id: casa, fora_id: fora, golos_casa: gc, golos_fora: gf,
-  penaltis_casa: null, penaltis_fora: null, estado: (gc == null ? 'agendado' : 'terminado') as EstadoJogo, ...extra,
+  penaltis_casa: null, penaltis_fora: null, mao: null, estado: (gc == null ? 'agendado' : 'terminado') as EstadoJogo, ...extra,
 });
 
 describe('quadro de eliminatórias', () => {
@@ -135,5 +136,115 @@ describe('planeamento', () => {
     const r = planearProximaRonda(meias, quadro);
     expect(r).toEqual({ eliminatoria: 2, porDecidir: 0, jogos: [{ eliminatoria: 2, chave: 0, casaId: 'A', foraId: 'C', jornada: 6 }] });
     expect(planearProximaRonda([...meias, { ...jogo(2, 0, 'A', 'C', null, null), jornada: 6 }], quadro)).toBeNull();
+  });
+});
+
+describe('duas mãos, 3.º lugar e melhores terceiros', () => {
+  const regras = { duasMaos: true, finalDuasMaos: false, terceiroLugar: true, golosWO: 3 };
+  // Eliminatória a duas mãos: a 1.ª em casa de B, a 2.ª em casa de A
+  const maos = (e: number, c: number, a: string, b: string, g1: [number, number] | null, g2: [number, number] | null,
+    extra2: Partial<JogoNoQuadro> = {}) => [
+    { ...jogo(e, c, b, a, g1?.[0] ?? null, g1?.[1] ?? null), mao: 1, id: `${e}-${c}-1`, jornada: 1 },
+    { ...jogo(e, c, a, b, g2?.[0] ?? null, g2?.[1] ?? null, extra2), mao: 2, id: `${e}-${c}-2`, jornada: 2 },
+  ];
+
+  it('soma os golos das duas mãos', () => {
+    // B 2-1 A na 1.ª mão; A 2-0 B na 2.ª: total A 3-2 B
+    const d = decidirEliminatoria(maos(4, 0, 'A', 'B', [2, 1], [2, 0]), 3);
+    expect(d.vencedor).toBe('A');
+    expect(d.perdedor).toBe('B');
+    expect([d.agregado!.get('A'), d.agregado!.get('B')]).toEqual([3, 2]);
+  });
+
+  it('empate no total: decide nos penáltis da 2.ª mão, sem golos fora', () => {
+    // B 1-0 A; A 2-1 B: total 2-2 (A marcou 0 fora, B marcou 1 fora, mas não conta)
+    const semPen = decidirEliminatoria(maos(4, 0, 'A', 'B', [1, 0], [2, 1]), 3);
+    expect(semPen).toMatchObject({ vencedor: null, empate: true });
+    const comPen = decidirEliminatoria(maos(4, 0, 'A', 'B', [1, 0], [2, 1], { penaltis_casa: 3, penaltis_fora: 5 }), 3);
+    expect(comPen).toMatchObject({ vencedor: 'B', empate: true });
+  });
+
+  it('um W.O. numa mão conta com os golos das regras', () => {
+    const [ida, volta] = maos(4, 0, 'A', 'B', [0, 0], null);
+    const d = decidirEliminatoria([ida, { ...volta, estado: 'wo_fora' as EstadoJogo }], 3);
+    expect(d.vencedor).toBe('A');
+    expect(decidirEliminatoria(maos(4, 0, 'A', 'B', [1, 0], null), 3).vencedor).toBeNull();
+  });
+
+  it('só pede penáltis no jogo único ou na 2.ª mão empatada no total', () => {
+    const [ida, volta] = maos(4, 0, 'A', 'B', [1, 0], [1, 0]);
+    const todos = [ida, volta];
+    expect(precisaPenaltis(ida, todos, 3)).toBe(false);
+    expect(precisaPenaltis(volta, todos, 3)).toBe(true);
+    expect(precisaPenaltis({ ...volta, golos_casa: 2 }, todos, 3)).toBe(false);
+    const unico = { ...jogo(2, 0, 'A', 'B', 1, 1), id: 'f' };
+    expect(precisaPenaltis(unico, [unico], 3)).toBe(true);
+  });
+
+  it('gera as duas mãos com a melhor semente em casa na 2.ª', () => {
+    const jogos = emJogos([{ eliminatoria: 4, chave: 0, casaId: 'S1', foraId: 'S4' }], 5, regras);
+    expect(jogos).toEqual([
+      { eliminatoria: 4, chave: 0, casaId: 'S4', foraId: 'S1', jornada: 5, mao: 1 },
+      { eliminatoria: 4, chave: 0, casaId: 'S1', foraId: 'S4', jornada: 6, mao: 2 },
+    ]);
+  });
+
+  it('depois das meias gera a final (jogo único) e o 3.º lugar', () => {
+    const quadro = montarQuadro(['A', 'B', 'C', 'D']);
+    const meias = [...maos(4, 0, 'A', 'D', [1, 0], [1, 0]), ...maos(4, 1, 'B', 'C', [2, 0], [0, 0])];
+    // Meia 0: total 1-1 → penáltis em falta; ainda não gera nada
+    expect(planearProximaRonda(meias, quadro, regras)?.porDecidir).toBe(1);
+
+    const decididas = [...maos(4, 0, 'A', 'D', [0, 1], [2, 0]), ...maos(4, 1, 'B', 'C', [2, 0], [0, 0])];
+    const r = planearProximaRonda(decididas, quadro, regras)!;
+    expect(r.jogos).toEqual([
+      { eliminatoria: 2, chave: 0, casaId: 'A', foraId: 'C', jornada: 3 },
+      { eliminatoria: 2, chave: CHAVE_TERCEIRO, casaId: 'D', foraId: 'B', jornada: 3 },
+    ]);
+    expect(r.jogos.map(nomeFase)).toEqual(['Final', '3.º lugar']);
+  });
+
+  it('com final a duas mãos, o 3.º lugar joga-se no dia da 2.ª mão', () => {
+    const quadro = montarQuadro(['A', 'B', 'C', 'D']);
+    const decididas = [...maos(4, 0, 'A', 'D', [0, 1], [2, 0]), ...maos(4, 1, 'B', 'C', [2, 0], [0, 0])];
+    const r = planearProximaRonda(decididas, quadro, { ...regras, finalDuasMaos: true })!;
+    expect(r.jogos.map((j) => [nomeFase(j), j.jornada])).toEqual([
+      ['Final (1.ª mão)', 3], ['Final (2.ª mão)', 4], ['3.º lugar', 4],
+    ]);
+  });
+
+  it('ordena os melhores terceiros entre grupos', () => {
+    const l = (equipaId: string, grupo: string, pts: number, dg: number, gm = 0, sorteio: number | null = null) =>
+      ({ equipaId, nome: equipaId, grupo, pts, dg, gm, v: 0, fairPlay: 0, sorteio });
+    const r = ordenarMelhores([l('X', 'A', 4, 0), l('Y', 'B', 4, 2), l('Z', 'C', 6, -3), l('W', 'D', 4, 2, 0, 1)]);
+    expect(r.map((x) => x.equipaId)).toEqual(['Z', 'W', 'Y', 'X']);
+  });
+
+  it('valida o número de apurados com os melhores terceiros', () => {
+    expect(validarFaseFinal([4, 4, 4], 2, 2)).toBeNull();
+    expect(validarFaseFinal([4, 4, 4], 2, 1)).toMatch(/7 equipas/);
+    expect(validarFaseFinal([4, 2, 2], 2, 2)).toMatch(/3\.º classificados suficientes/);
+  });
+
+  it('nunca junta equipas do mesmo grupo na 1.ª ronda (6 grupos, 4 melhores terceiros)', () => {
+    const letras = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const grupos = letras.map((g) => ({ grupo: g, equipas: [`${g}1`, `${g}2`, `${g}3`, `${g}4`] }));
+    // Todas as 15 combinações de 4 grupos de onde vêm os terceiros
+    for (let a = 0; a < 6; a++) for (let b = a + 1; b < 6; b++) for (let c = b + 1; c < 6; c++) for (let x = c + 1; x < 6; x++) {
+      const terceiros = [a, b, c, x].map((i) => `${letras[i]}3`);
+      const plano = planearFaseFinal(grupos, 2, 3, undefined, terceiros);
+      if ('erro' in plano) throw new Error(plano.erro);
+      expect(plano.jogos).toHaveLength(8);
+      for (const j of plano.jogos) expect(`${terceiros.join()}: ${j.casaId}-${j.foraId}`).not.toMatch(/: (\w)\d-\1\d$/);
+    }
+  });
+
+  it('com 3 grupos e 2 melhores terceiros também evita repetir grupo', () => {
+    const grupos = ['A', 'B', 'C'].map((g) => ({ grupo: g, equipas: [`${g}1`, `${g}2`, `${g}3`] }));
+    for (const terceiros of [['A3', 'B3'], ['A3', 'C3'], ['B3', 'C3'], ['C3', 'A3']]) {
+      const plano = planearFaseFinal(grupos, 2, 3, undefined, terceiros);
+      if ('erro' in plano) throw new Error(plano.erro);
+      for (const j of plano.jogos) expect(j.casaId[0]).not.toBe(j.foraId[0]);
+    }
   });
 });

@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Aviso, Botao, Campo, Emblema, Entrada, Seccao, Seletor } from '../../componentes/ui';
-import { carregarImagem } from '../../lib/imagens';
+import { useCallback, useEffect, useState } from 'react';
+import { FormularioJogador, abrirJogador, type EdicaoJogador } from '../../componentes/FormularioJogador';
+import { Aviso, Botao, Emblema, Seccao, Seletor } from '../../componentes/ui';
 import { mensagemErro, supabase } from '../../lib/supabase';
-import type { Equipa, Jogador, JogadorPrivado } from '../../lib/types';
-
-type Edicao = Partial<Jogador> & Partial<Omit<JogadorPrivado, 'jogador_id'>>;
+import type { Equipa, Jogador } from '../../lib/types';
 
 export default function Jogadores() {
   const [equipas, setEquipas] = useState<Equipa[]>([]);
   const [lista, setLista] = useState<Jogador[]>([]);
   const [filtro, setFiltro] = useState('');
-  const [edicao, setEdicao] = useState<Edicao | null>(null);
-  const [ficheiro, setFicheiro] = useState<File | null>(null);
+  const [edicao, setEdicao] = useState<EdicaoJogador | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [aGuardar, setAGuardar] = useState(false);
 
   const carregar = useCallback(async () => {
     const [e, j] = await Promise.all([
@@ -28,48 +24,7 @@ export default function Jogadores() {
 
   const abrir = async (j?: Jogador) => {
     setErro(null);
-    setFicheiro(null);
-    if (!j) return setEdicao({ nome: '', equipa_id: filtro || null, suspenso: false });
-    const { data } = await supabase.from('jogadores_privado').select('*').eq('jogador_id', j.id).maybeSingle();
-    setEdicao({ ...j, ...(data ?? {}) });
-  };
-
-  const guardar = async (ev: FormEvent) => {
-    ev.preventDefault();
-    if (!edicao) return;
-    setAGuardar(true);
-    try {
-      const foto_url = ficheiro ? await carregarImagem(ficheiro, 'jogadores') : edicao.foto_url ?? null;
-      const publico = {
-        nome: edicao.nome!.trim(),
-        equipa_id: edicao.equipa_id || null,
-        numero: edicao.numero ?? null,
-        suspenso: Boolean(edicao.suspenso),
-        foto_url,
-      };
-      let id = edicao.id;
-      if (id) {
-        const { error } = await supabase.from('jogadores').update(publico).eq('id', id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from('jogadores').insert(publico).select('id').single();
-        if (error) throw error;
-        id = data.id as string;
-      }
-      const { error } = await supabase.from('jogadores_privado').upsert({
-        jogador_id: id,
-        data_nasc: edicao.data_nasc || null,
-        documento: edicao.documento || null,
-        contacto: edicao.contacto || null,
-      });
-      if (error) throw error;
-      setEdicao(null);
-      await carregar();
-    } catch (e) {
-      setErro(mensagemErro(e));
-    } finally {
-      setAGuardar(false);
-    }
+    setEdicao(j ? await abrirJogador(j) : { nome: '', equipa_id: filtro || null, suspenso: false });
   };
 
   const apagar = async (j: Jogador) => {
@@ -85,44 +40,8 @@ export default function Jogadores() {
   return (
     <>
       {edicao && (
-        <Seccao titulo={edicao.id ? `Editar ${edicao.nome}` : 'Novo jogador'}>
-          <form onSubmit={guardar} className="grid gap-4 sm:grid-cols-2">
-            <Campo rotulo="Nome">
-              <Entrada required value={edicao.nome ?? ''} onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })} />
-            </Campo>
-            <Campo rotulo="Equipa">
-              <Seletor value={edicao.equipa_id ?? ''} onChange={(e) => setEdicao({ ...edicao, equipa_id: e.target.value || null })}>
-                <option value="">Sem equipa</option>
-                {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-              </Seletor>
-            </Campo>
-            <Campo rotulo="Número da camisola">
-              <Entrada type="number" min={0} max={99} value={edicao.numero ?? ''}
-                onChange={(e) => setEdicao({ ...edicao, numero: e.target.value === '' ? null : Number(e.target.value) })} />
-            </Campo>
-            <Campo rotulo="Foto">
-              <Entrada type="file" accept="image/*" onChange={(e) => setFicheiro(e.target.files?.[0] ?? null)} />
-            </Campo>
-            <Campo rotulo="Data de nascimento" ajuda="Visível só para administradores.">
-              <Entrada type="date" value={edicao.data_nasc ?? ''} onChange={(e) => setEdicao({ ...edicao, data_nasc: e.target.value })} />
-            </Campo>
-            <Campo rotulo="Documento (BI ou passaporte)" ajuda="Visível só para administradores.">
-              <Entrada value={edicao.documento ?? ''} onChange={(e) => setEdicao({ ...edicao, documento: e.target.value })} />
-            </Campo>
-            <Campo rotulo="Contacto" ajuda="Visível só para administradores.">
-              <Entrada type="tel" value={edicao.contacto ?? ''} onChange={(e) => setEdicao({ ...edicao, contacto: e.target.value })} />
-            </Campo>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-              <input type="checkbox" className="h-4 w-4 accent-relva" checked={Boolean(edicao.suspenso)}
-                onChange={(e) => setEdicao({ ...edicao, suspenso: e.target.checked })} />
-              Suspenso por decisão da organização (as suspensões por cartões são automáticas)
-            </label>
-            <div className="flex gap-2 sm:col-span-2">
-              <Botao type="submit" disabled={aGuardar}>{aGuardar ? 'A guardar…' : 'Guardar jogador'}</Botao>
-              <Botao variante="secundario" onClick={() => setEdicao(null)}>Cancelar</Botao>
-            </div>
-          </form>
-        </Seccao>
+        <FormularioJogador key={edicao.id ?? 'novo'} inicial={edicao} equipas={equipas} comSuspensao
+          onGuardado={() => { setEdicao(null); carregar(); }} onCancelar={() => setEdicao(null)} />
       )}
 
       <Seccao titulo="Jogadores" acao={

@@ -12,12 +12,18 @@ export default function Equipas() {
   const [ficheiro, setFicheiro] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aGuardar, setAGuardar] = useState(false);
+  const [responsaveis, setResponsaveis] = useState<{ equipa_id: string; email: string }[]>([]);
 
   const carregar = useCallback(async () => {
-    const { data, error } = await supabase.from('equipas').select('*').order('nome');
-    if (error) setErro(mensagemErro(error));
-    else setLista(data as Equipa[]);
+    const [e, r] = await Promise.all([
+      supabase.from('equipas').select('*').order('nome'),
+      supabase.from('responsaveis').select('equipa_id, email').order('email'),
+    ]);
+    if (e.error || r.error) return setErro(mensagemErro(e.error ?? r.error));
+    setLista(e.data as Equipa[]);
+    setResponsaveis(r.data as { equipa_id: string; email: string }[]);
   }, []);
+  const comAcesso = (equipaId: string) => responsaveis.filter((r) => r.equipa_id === equipaId).map((r) => r.email);
   useEffect(() => { carregar(); }, [carregar]);
 
   const abrir = (e: Partial<Equipa>) => { setEdicao(e); setFicheiro(null); setErro(null); };
@@ -68,6 +74,11 @@ export default function Equipas() {
             <Campo rotulo="Contacto">
               <Entrada type="tel" value={edicao.contacto ?? ''} onChange={(e) => setEdicao({ ...edicao, contacto: e.target.value })} />
             </Campo>
+            {edicao.id && (
+              <div className="sm:col-span-2">
+                <AcessoResponsaveis equipaId={edicao.id} emails={comAcesso(edicao.id)} onMudou={carregar} />
+              </div>
+            )}
             <div className="flex gap-2 sm:col-span-2">
               <Botao type="submit" disabled={aGuardar}>{aGuardar ? 'A guardar…' : 'Guardar equipa'}</Botao>
               <Botao variante="secundario" onClick={() => setEdicao(null)}>Cancelar</Botao>
@@ -87,7 +98,10 @@ export default function Equipas() {
                 <Emblema url={e.emblema_url} nome={e.nome} tamanho={36} />
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">{e.nome}</div>
-                  <div className="text-xs text-tinta/60">{[e.responsavel, e.contacto].filter(Boolean).join(', ') || 'Sem responsável indicado'}</div>
+                  <div className="text-xs text-tinta/60">
+                    {[e.responsavel, e.contacto].filter(Boolean).join(', ') || 'Sem responsável indicado'}
+                    {comAcesso(e.id).length > 0 && ` · ${comAcesso(e.id).length} com acesso à área da equipa`}
+                  </div>
                 </div>
                 <Botao variante="secundario" onClick={() => abrir(e)}>Editar</Botao>
                 <Botao variante="perigo" onClick={() => apagar(e)}>Apagar</Botao>
@@ -97,5 +111,56 @@ export default function Equipas() {
         )}
       </Seccao>
     </>
+  );
+}
+
+const EMAIL_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** Emails com acesso à área da equipa (plantel e fichas de jogo). */
+function AcessoResponsaveis({ equipaId, emails, onMudou }: { equipaId: string; emails: string[]; onMudou: () => void }) {
+  const [novo, setNovo] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+
+  const executar = async (acao: () => PromiseLike<{ error: unknown }>) => {
+    const { error } = await acao();
+    if (error) return setErro(mensagemErro(error));
+    setErro(null);
+    setNovo('');
+    onMudou();
+  };
+  const acrescentar = () => {
+    const email = novo.trim().toLowerCase();
+    if (!EMAIL_VALIDO.test(email)) return setErro('Escreva um email válido.');
+    executar(() => supabase.from('responsaveis').insert({ equipa_id: equipaId, email }));
+  };
+
+  return (
+    <fieldset className="rounded-md border border-linha p-4">
+      <legend className="px-1 text-sm font-semibold">Acesso à área da equipa</legend>
+      <p className="mb-3 text-xs text-tinta/60">
+        Quem entrar no site com um destes emails, depois de o confirmar, pode gerir o plantel e as fichas de jogo desta
+        equipa. Não pode lançar resultados, golos, cartões nem suspensões. Peça-lhe para criar conta em /entrar com este email.
+      </p>
+      {erro && <div className="mb-3"><Aviso>{erro}</Aviso></div>}
+      {emails.length > 0 && (
+        <ul className="mb-3 divide-y divide-linha text-sm">
+          {emails.map((email) => (
+            <li key={email} className="flex items-center gap-3 py-1.5">
+              <span className="flex-1 break-all">{email}</span>
+              <Botao variante="perigo" onClick={() => executar(() =>
+                supabase.from('responsaveis').delete().eq('equipa_id', equipaId).eq('email', email))}>
+                Retirar acesso
+              </Botao>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Entrada type="email" placeholder="email@exemplo.com" value={novo} className="min-w-0 flex-1"
+          onChange={(e) => setNovo(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); acrescentar(); } }} />
+        <Botao variante="secundario" onClick={acrescentar}>Dar acesso</Botao>
+      </div>
+    </fieldset>
   );
 }

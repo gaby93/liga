@@ -28,7 +28,7 @@ planos gratuitos.
    ```
    Use o *Project URL* e a chave pública (*anon* ou *publishable*). Nunca use a
    chave *service_role* no frontend.
-5. Abra `http://localhost:5173/admin`, entre e crie a primeira competição.
+5. Abra `http://localhost:5173/entrar`, entre e crie a primeira competição.
 
 ## Fluxo de uso
 
@@ -54,20 +54,43 @@ planos gratuitos.
 - **Liga**: todos contra todos, uma tabela.
 - **Fase de grupos + eliminatórias**: cada grupo joga todos contra todos. No
   fim, **Gerar fase final** coloca os apurados no quadro: 1.º A × 2.º B,
-  1.º B × 2.º A, e assim por diante. Grupos × apurados tem de dar 2, 4, 8, 16
-  ou 32 equipas.
+  1.º B × 2.º A, e assim por diante. Grupos × apurados (mais os melhores
+  terceiros, se houver) tem de dar 2, 4, 8, 16 ou 32 equipas.
+- **Melhores terceiros**: em "Melhores 3.º classificados também passam",
+  indique quantos. Comparam-se entre grupos por pontos, diferença de golos,
+  golos marcados, vitórias, fair play e sorteio. Se os grupos tiverem tamanhos
+  diferentes, não contam os jogos contra os últimos dos grupos maiores (como na
+  UEFA). O ranking aparece no portal, por baixo dos grupos. No quadro, a 1.ª
+  ronda evita jogos entre equipas do mesmo grupo. (Ex.: 3 grupos × 2 apurados
+  + 2 melhores terceiros = 8; 6 grupos × 2 + 4 = 16.)
 - **Eliminatórias**: quadro a eliminar desde o início. O campo "Semente" define
   as cabeças de série (1 e 2 só se cruzam na final). Com um número de equipas
   que não é potência de 2, as melhores sementes passam a 1.ª ronda sem jogar.
   As equipas sem semente são sorteadas.
 
-As eliminatórias jogam-se a um só jogo. Num empate, registam-se os penáltis na
-ficha do jogo. Quando uma ronda está decidida, o botão **Gerar meias-finais**
-(ou quartos, final…) cria a seguinte. Depois, basta marcar as datas no painel
-do calendário.
+Por defeito, as eliminatórias jogam-se a um só jogo, e um empate decide-se nos
+penáltis registados na ficha do jogo. Nas regras da competição, em
+**Eliminatórias**, pode escolher:
+
+- **A duas mãos**: dois jogos por eliminatória, com os golos somados e sem regra
+  dos golos fora. A 1.ª mão joga-se em casa da equipa pior classificada no
+  quadro e a 2.ª, na jornada seguinte, em casa da melhor. Se o total empatar,
+  registam-se os penáltis na ficha da 2.ª mão, onde aparece o total das duas.
+  Um W.O. conta com os golos definidos nas regras. A final é a um só jogo, a
+  não ser que marque "A final também a duas mãos".
+- **Jogo do 3.º lugar**: os derrotados das meias-finais jogam no dia da final
+  (na 2.ª mão, se a final tiver duas). Gera-se com a final.
+
+Quando uma ronda está decidida, o botão **Gerar meias-finais** (ou quartos,
+final…) cria a seguinte. Depois, basta marcar as datas no painel do calendário.
+As regras aplicam-se às rondas que ainda vão ser geradas.
 
 ## Portal público
 
+- **Página inicial**: todas as competições em curso, com pesquisa por nome ou
+  época. A ☆ marca uma competição como favorita, e as favoritas aparecem
+  primeiro nas visitas seguintes (ficam guardadas no próprio browser). As
+  terminadas estão numa secção à parte.
 - **Tabela / Grupos / Quadro** (conforme o formato), **Fase final**, **Jogos**
   e **Marcadores**.
 - **Página de equipa** (clicar no nome em qualquer tabela ou jogo): posição,
@@ -75,6 +98,58 @@ do calendário.
 - **Página de jogador** (a partir do plantel ou dos marcadores): golos, lugar
   nos marcadores, cartões, suspensão em curso e os jogos disputados, com os
   golos e cartões de cada um.
+
+## App no telemóvel (PWA)
+
+O portal instala-se como uma app, sem loja de aplicações:
+
+- **Android** (Chrome): aparece um cartão **Instalar** na página inicial.
+- **iPhone** (Safari): **Partilhar ▸ Adicionar ao ecrã principal** (o cartão
+  explica).
+- **Computador** (Chrome/Edge): ícone de instalar na barra de endereço.
+
+Depois de instalada:
+
+- Abre sem rede, com os últimos dados vistos (tabelas, jogos, marcadores,
+  emblemas e fotos). Aparece o aviso "Sem ligação".
+- Os dados pessoais dos jogadores e os emails dos responsáveis nunca ficam
+  guardados no aparelho. Entrar, lançar resultados e gravar continuam a precisar
+  de rede.
+- Quando há uma versão nova do site, aparece **Nova versão disponível ·
+  Atualizar**. A app não recarrega sozinha, para não perder um formulário a meio.
+
+O ficheiro `public/_headers` impede que o Cloudflare guarde em cache o service
+worker, para as atualizações chegarem logo.
+
+## Área da equipa (responsáveis)
+
+Cada equipa pode ter responsáveis que gerem o próprio plantel e as fichas de
+jogo, para a organização não ter de o fazer por todos.
+
+1. No backoffice, em **Equipas > Editar**, escreva o email do responsável em
+   **Acesso à área da equipa**.
+2. O responsável abre `/entrar` (há um link no fundo da página inicial),
+   escolhe **Criar conta** com esse email e confirma-o no email que recebe.
+3. A partir daí, ao entrar, vai para a **área da equipa**: próximos jogos com a
+   ficha de cada um, e o plantel (acrescentar e editar jogadores, com foto e
+   dados pessoais).
+
+O responsável **não** pode lançar resultados, golos ou cartões, suspender
+jogadores, apagar jogadores ou mudá-los de equipa, mexer noutras equipas, nem
+alterar a ficha depois de o jogo terminar. Estas regras estão na base de dados
+(RLS), não só nos ecrãs.
+
+**Importante no Supabase:**
+- *Authentication > Sign In / Providers > Email*: mantenha **Confirm email**
+  ligado. O acesso só é dado a emails confirmados; sem confirmação, qualquer
+  pessoa podia criar conta com o email de um responsável.
+- *Authentication > URL Configuration*: em **Site URL** ponha o endereço do
+  site (ex.: `https://a-sua-liga.pages.dev`) e acrescente
+  `https://a-sua-liga.pages.dev/entrar` em **Redirect URLs**, para o link de
+  confirmação voltar ao site.
+- O envio de emails incluído no plano gratuito só permite poucos emails por
+  hora. Chega para alguns responsáveis; para muitos, configure um SMTP próprio
+  em *Authentication > Emails*.
 
 ## Fichas de jogo
 
@@ -130,6 +205,8 @@ ordem, os ficheiros:
 1. `supabase/migracoes/2026-09-29_calendario_suspensoes.sql`
 2. `supabase/migracoes/2026-09-29_formatos.sql`
 3. `supabase/migracoes/2026-09-30_fichas_jogo.sql`
+4. `supabase/migracoes/2026-09-30_responsaveis.sql`
+5. `supabase/migracoes/2026-10-01_eliminatorias.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 
@@ -186,12 +263,20 @@ src/lib/partilha.ts              imagens e texto para partilhar
 src/lib/fichas.ts                fichas de jogo: copiar a anterior, jogos disputados
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores
+src/lib/sessao.ts                quem tem sessão: administrador, responsável ou sem acesso
+src/lib/useFichaJogo.ts          dados e ações da ficha de jogo (backoffice e área da equipa)
+src/lib/favoritos.ts             favoritos e pesquisa da página inicial
 src/paginas/admin/               backoffice
+src/paginas/equipa/              área dos responsáveis de equipa
 ```
 
 ## Segurança
 
 - Leitura pública em tudo o que o portal mostra; escrita só para quem está na
   tabela `admins` (verificado na base de dados pelas políticas RLS).
+- Responsáveis de equipa (tabela `responsaveis`, por email confirmado) só
+  escrevem no plantel e nas fichas de jogo da própria equipa. Suspender
+  jogadores continua reservado aos administradores (trigger na base de dados).
 - Data de nascimento, documento e contacto dos jogadores ficam na tabela
-  `jogadores_privado`, que só os administradores conseguem ler.
+  `jogadores_privado`, que só os administradores e o responsável da equipa do
+  jogador conseguem ler. Os emails dos responsáveis só os administradores veem.
