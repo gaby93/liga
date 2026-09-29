@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-relva: #1e6b45;
+  --color-relva-escura: #134a2f;
+  --color-giz: #f6f8f4;
+  --color-tinta: #1b2433;
+  --color-linha: #d9dee3;
+  --color-cartao: #f2c230;
+  --color-vermelho: #d7263d;
+}
+
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  background: var(--color-giz);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Faixas de relva cortada, como num campo acabado de aparar */
+.relvado {
+  background-color: var(--color-relva);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-relva) 0 56px,
+    #237a4f 56px 112px
+  );
+}

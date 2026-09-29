@@ -1,0 +1,4 @@
+# Fins de linha LF em todas as máquinas (o build do Cloudflare corre em Linux)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
