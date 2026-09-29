@@ -6,7 +6,7 @@ import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
 import { Carregando, Emblema } from '../../componentes/ui';
 import { resultadoEfetivo } from '../../lib/classificacao';
 import { formatarData } from '../../lib/datas';
-import { nomeEliminatoria } from '../../lib/formatos';
+import { nomeFase } from '../../lib/formatos';
 import type { Jogo, TipoEvento } from '../../lib/types';
 import type { DadosCompeticao } from '../../lib/useDadosCompeticao';
 
@@ -298,7 +298,7 @@ function LinhaJogoJogador({ jogo, d, eventos, links }: {
 }) {
   const casa = d.equipas.get(jogo.casa_id);
   const fora = d.equipas.get(jogo.fora_id);
-  const fase = jogo.eliminatoria != null ? nomeEliminatoria(jogo.eliminatoria) : `Jornada ${jogo.jornada}`;
+  const fase = nomeFase(jogo);
   const ordenados = [...eventos].sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999));
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">

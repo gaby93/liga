@@ -76,6 +76,21 @@ do calendário.
   nos marcadores, cartões, suspensão em curso e os golos e cartões jogo a jogo.
   Como não se registam convocatórias, só aparecem os jogos com golos ou cartões.
 
+## Imagens para partilhar
+
+Na página da competição, **Imagens para partilhar** cria uma imagem com os
+**resultados** de uma jornada (ou ronda) ou com os **próximos jogos**, com
+emblemas, data, hora e campo. Por defeito aparece a última jornada com
+resultados ou a próxima com jogos por fazer, e a imagem atualiza-se quando
+entra um resultado.
+
+- **Partilhar**: no telemóvel abre a lista de apps (WhatsApp, etc.).
+- **Copiar imagem**: no computador, para colar no WhatsApp Web.
+- **Descarregar PNG** e **Copiar texto** (a mesma informação em texto, para a
+  mensagem).
+
+O rodapé mostra o endereço do portal definido em `VITE_SITE_URL`.
+
 ## Suspensões automáticas
 
 Calculadas a partir dos cartões, com regras definidas em cada competição:
@@ -104,8 +119,9 @@ ordem, os ficheiros:
 1. Suba o código para um repositório GitHub.
 2. Cloudflare > *Workers & Pages > Create > Pages > Connect to Git*.
 3. Build command: `npm run build`. Output directory: `dist`.
-4. Em *Environment variables*, adicione `VITE_SUPABASE_URL` e
-   `VITE_SUPABASE_ANON_KEY`.
+4. Em *Environment variables*, adicione `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_ANON_KEY` e `VITE_SITE_URL` (o endereço do site, ex.:
+   `https://a-sua-liga.pages.dev`, que aparece nas imagens para partilhar).
 5. Cada `git push` publica uma nova versão. O ficheiro `public/_redirects`
    garante que links diretos (ex.: `/c/.../jogos`) funcionam.
 
@@ -149,6 +165,7 @@ src/lib/classificacao.ts         motor da tabela e dos desempates
 src/lib/calendario.ts            gerador de jornadas (método do círculo) e datas
 src/lib/suspensoes.ts            suspensões por cartões
 src/lib/formatos.ts              grupos, quadro de eliminatórias e rondas seguintes
+src/lib/partilha.ts              imagens e texto para partilhar
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores
 src/paginas/admin/               backoffice

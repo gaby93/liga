@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { formatarData } from '../lib/datas';
-import { nomeEliminatoria } from '../lib/formatos';
+import { blocosDeJogos } from '../lib/formatos';
 import type { Equipa, Jogo } from '../lib/types';
 import { Emblema } from './ui';
 
@@ -22,8 +22,6 @@ export function Placar({ jogo }: { jogo: Jogo }) {
   return <span className="text-sm text-tinta/50">vs</span>;
 }
 
-/** Título do bloco a que o jogo pertence: jornada ou ronda da fase final. */
-const fase = (j: Jogo) => (j.eliminatoria != null ? nomeEliminatoria(j.eliminatoria) : `Jornada ${j.jornada}`);
 
 export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O calendário ainda não foi publicado.' }: {
   jogos: Jogo[];
@@ -36,8 +34,6 @@ export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O ca
 }) {
   if (!jogos.length) return <p className="text-sm text-tinta/70">{vazio}</p>;
 
-  const blocos = new Map<string, Jogo[]>();
-  for (const j of jogos) blocos.set(fase(j), [...(blocos.get(fase(j)) ?? []), j]);
 
   const nomeEquipa = (id: string, alinhar: string) => {
     const nome = <span className={`truncate font-semibold ${alinhar}`}>{equipas.get(id)?.nome}</span>;
@@ -46,7 +42,7 @@ export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O ca
 
   return (
     <div className="flex flex-col gap-6">
-      {[...blocos].map(([titulo, lista]) => (
+      {blocosDeJogos(jogos).map(({ titulo, jogos: lista }) => (
         <div key={titulo}>
           <h3 className="mb-2 font-display text-xl font-semibold">{titulo}</h3>
           <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ListaJogos } from '../../componentes/ListaJogos';
+import { PartilharImagens } from '../../componentes/PartilharImagens';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
 import { Aviso, Botao, Campo, Carregando, Entrada, Seccao, Seletor } from '../../componentes/ui';
@@ -59,6 +60,8 @@ export default function CompeticaoDetalhe() {
       <Calendario d={d} executar={executar} />
 
       {d.competicao.formato !== 'liga' && <FaseFinal d={d} executar={executar} />}
+
+      <PartilharImagens d={d} />
 
       <Suspensoes d={d} />
 

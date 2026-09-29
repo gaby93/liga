@@ -242,3 +242,16 @@ export function planearProximaRonda(
   const r = proximaRonda(doQuadro, quadro, atual);
   return { eliminatoria: atual / 2, porDecidir: r.porDecidir, jogos: r.jogos.map((j) => ({ ...j, jornada })) };
 }
+
+// ---------- Agrupamento para mostrar ----------
+
+/** Título do bloco a que o jogo pertence: jornada ou ronda da fase final. */
+export const nomeFase = (j: { jornada: number; eliminatoria: number | null }) =>
+  (j.eliminatoria != null ? nomeEliminatoria(j.eliminatoria) : `Jornada ${j.jornada}`);
+
+/** Jogos agrupados por jornada ou ronda, pela ordem em que aparecem. */
+export function blocosDeJogos<T extends { jornada: number; eliminatoria: number | null }>(jogos: T[]) {
+  const blocos = new Map<string, T[]>();
+  for (const j of jogos) blocos.set(nomeFase(j), [...(blocos.get(nomeFase(j)) ?? []), j]);
+  return [...blocos].map(([titulo, lista]) => ({ titulo, jogos: lista }));
+}
