@@ -60,7 +60,7 @@ export function SinoCompeticao({ competicaoId, nome }: { competicaoId: string; n
                 <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-linha p-3.5">
                   <span>
                     <span className="block font-semibold">Receber notificações desta competição</span>
-                    <span className="block text-xs text-tinta/60">De todos os jogos. Para uma só equipa, use "Seguir" na página dela.</span>
+                    <span className="block text-xs text-tinta/60">De todos os jogos. Marcar a competição como favorita (☆) também liga isto. Para uma só equipa, use "Seguir" na página dela.</span>
                   </span>
                   <Interruptor ativo={ativo} desativado={n.aTratar} onMudar={() => n.alternarCompeticao(competicaoId)} />
                 </label>

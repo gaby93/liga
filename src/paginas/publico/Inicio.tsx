@@ -4,7 +4,8 @@ import { CartaoAoVivo } from '../../componentes/AoVivo';
 import { InstalarApp } from '../../componentes/AvisosApp';
 import { BotaoConvidar } from '../../componentes/Convidar';
 import { Carregando, Etiqueta, Marca } from '../../componentes/ui';
-import { organizarCompeticoes, useFavoritos } from '../../lib/favoritos';
+import { organizarCompeticoes } from '../../lib/favoritos';
+import { useFavoritosComSino } from '../../lib/usarNotificacoes';
 import { supabase } from '../../lib/supabase';
 import { FORMATO_LABEL, type Competicao, type Equipa, type Jogo } from '../../lib/types';
 
@@ -64,7 +65,7 @@ export default function Inicio() {
   const [erro, setErro] = useState(false);
   const [pesquisa, setPesquisa] = useState('');
   const [verTerminadas, setVerTerminadas] = useState(false);
-  const { favoritos, eFavorito, alternar } = useFavoritos();
+  const { favoritos, eFavorito, alternar } = useFavoritosComSino();
 
   useEffect(() => {
     supabase.from('competicoes').select('*, participantes(count)').neq('estado', 'rascunho')
@@ -151,7 +152,7 @@ export default function Inicio() {
             {bloco('Favoritas', favoritas)}
             {bloco(favoritas.length ? 'Outras em curso' : 'Em curso', emCurso)}
             {favoritas.length === 0 && emCurso.length > 0 && !aPesquisar && (
-              <p className="-mt-3 text-xs text-tinta/60">Toque na ☆ para ver uma competição sempre no topo desta lista.</p>
+              <p className="-mt-3 text-xs text-tinta/60">Toque na ☆ para ver uma competição sempre no topo desta lista e receber os avisos dos jogos dela.</p>
             )}
             {terminadas.length > 0 && (aPesquisar || verTerminadas
               ? bloco('Terminadas', terminadas)

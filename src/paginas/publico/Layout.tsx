@@ -6,7 +6,7 @@ import { Aviso, Marca } from '../../componentes/ui';
 import { nomeFase } from '../../lib/formatos';
 import type { Formato } from '../../lib/types';
 import { useDadosCompeticao } from '../../lib/useDadosCompeticao';
-import { useFavoritos } from '../../lib/favoritos';
+import { useFavoritosComSino } from '../../lib/usarNotificacoes';
 import { EstrelaFavorito } from './Inicio';
 
 const SEPARADORES: Record<Formato, { to: string; rotulo: string; end: boolean }[]> = {
@@ -21,7 +21,7 @@ export default function PublicoLayout() {
   const c = dados.competicao;
   // Jogos a decorrer (menos o que já está aberto na página do jogo)
   const aoVivo = dados.jogos.filter((j) => j.estado === 'em_curso' && j.id !== jogoId);
-  const { eFavorito, alternar } = useFavoritos();
+  const { eFavorito, alternar } = useFavoritosComSino();
   const separadores = [
     ...SEPARADORES[c?.formato ?? 'liga'],
     { to: 'jogos', rotulo: 'Jogos', end: false },

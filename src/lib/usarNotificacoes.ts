@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFavoritos } from './favoritos';
 import { chaveParaBytes, type TipoAviso } from './notificacoes';
 import { mensagemErro, supabase } from './supabase';
 
@@ -16,8 +17,13 @@ const VAZIAS: Preferencias = { competicoes: [], equipas: [], tipos: ['golos', 'i
 function ler(): Preferencias {
   try { return { ...VAZIAS, ...JSON.parse(localStorage.getItem(CHAVE) ?? '{}') }; } catch { return VAZIAS; }
 }
+// Vários componentes usam as escolhas ao mesmo tempo (sino, estrela, seguir equipa): mudam juntos
+const ouvintes = new Set<() => void>();
+// Uma alteração de cada vez, pela ordem dos toques: inscrever o aparelho demora uns segundos
+let fila: Promise<unknown> = Promise.resolve();
 function gravar(p: Preferencias) {
   try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento local */ }
+  ouvintes.forEach((f) => f());
 }
 
 export type Suporte = 'nao_configurado' | 'sem_suporte' | 'iphone_sem_instalar' | 'bloqueado' | 'disponivel';
@@ -74,6 +80,12 @@ export function useNotificacoes() {
   const [erro, setErro] = useState<string | null>(null);
   const estado = suporte();
 
+  useEffect(() => {
+    const f = () => setPrefs(ler());
+    ouvintes.add(f);
+    return () => { ouvintes.delete(f); };
+  }, []);
+
   // Uma vez por sessão, volta a enviar as escolhas: se o servidor tiver apagado a subscrição
   // (ex.: o serviço de push renovou-a), as notificações não param sem ninguém dar por isso
   useEffect(() => {
@@ -86,7 +98,17 @@ export function useNotificacoes() {
       .catch(() => undefined);
   }, [estado]);
 
-  const aplicar = useCallback(async (novas: Preferencias): Promise<boolean> => {
+  // Parte sempre das escolhas guardadas (outro componente pode tê-las mudado entretanto).
+  // `mudar` devolve null quando não há nada a fazer.
+  const aplicar = useCallback((mudar: (atuais: Preferencias) => Preferencias | null): Promise<boolean> => {
+    const vez = fila.then(() => executar(mudar));
+    fila = vez.catch(() => undefined);
+    return vez;
+  }, []);
+
+  const executar = async (mudar: (atuais: Preferencias) => Preferencias | null): Promise<boolean> => {
+    const novas = mudar(ler());
+    if (!novas) return true;
     setATratar(true);
     setErro(null);
     try {
@@ -107,7 +129,6 @@ export function useNotificacoes() {
         await enviarParaServidor(await subscricao(await registo()), novas);
       }
       gravar(novas);
-      setPrefs(novas);
       return true;
     } catch (e) {
       setErro(mensagemErro(e));
@@ -115,18 +136,39 @@ export function useNotificacoes() {
     } finally {
       setATratar(false);
     }
-  }, []);
+  };
 
-  const alternar = (lista: 'competicoes' | 'equipas', id: string) => aplicar({
-    ...prefs, [lista]: prefs[lista].includes(id) ? prefs[lista].filter((x) => x !== id) : [...prefs[lista], id],
-  });
+  const alternar = (lista: 'competicoes' | 'equipas', id: string) => aplicar((p) => ({
+    ...p, [lista]: p[lista].includes(id) ? p[lista].filter((x) => x !== id) : [...p[lista], id],
+  }));
+
+  /** Liga ou desliga uma competição (sem nada a fazer se já estiver assim). */
+  const seguirCompeticao = (id: string, seguir: boolean) => aplicar((p) => (p.competicoes.includes(id) === seguir ? null
+    : { ...p, competicoes: seguir ? [...p.competicoes, id] : p.competicoes.filter((x) => x !== id) }));
 
   return {
     estado, prefs, aTratar, erro,
     segueCompeticao: (id: string) => prefs.competicoes.includes(id),
     segueEquipa: (id: string) => prefs.equipas.includes(id),
     alternarCompeticao: (id: string) => alternar('competicoes', id),
+    seguirCompeticao,
     alternarEquipa: (id: string) => alternar('equipas', id),
-    mudarTipos: (tipos: TipoAviso[]) => aplicar({ ...prefs, tipos }),
+    mudarTipos: (tipos: TipoAviso[]) => aplicar((p) => ({ ...p, tipos })),
   };
+}
+
+/**
+ * Favoritos que também ligam o sino: marcar uma competição ativa as notificações
+ * dela (o browser pede autorização da primeira vez); tirar dos favoritos desliga-as.
+ * Onde não há notificações (iPhone sem a app instalada, autorização negada), fica só o favorito.
+ */
+export function useFavoritosComSino() {
+  const f = useFavoritos();
+  const n = useNotificacoes();
+  const alternar = (id: string) => {
+    const favorito = !f.eFavorito(id);
+    f.alternar(id);
+    if (n.estado === 'disponivel') void n.seguirCompeticao(id, favorito);
+  };
+  return { ...f, alternar };
 }
