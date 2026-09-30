@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartaoAoVivo } from '../../componentes/AoVivo';
 import { InstalarApp } from '../../componentes/AvisosApp';
-import { Carregando } from '../../componentes/ui';
+import { Carregando, Etiqueta, Marca } from '../../componentes/ui';
 import { organizarCompeticoes, useFavoritos } from '../../lib/favoritos';
 import { supabase } from '../../lib/supabase';
 import { FORMATO_LABEL, type Competicao, type Equipa, type Jogo } from '../../lib/types';
@@ -80,14 +80,14 @@ export default function Inicio() {
   const nada = !favoritas.length && !emCurso.length && !terminadas.length;
 
   const bloco = (titulo: string, itens: Item[]) => itens.length > 0 && (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-display text-xl font-semibold text-tinta/70">{titulo}</h2>
-      <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+    <section className="flex flex-col gap-2.5">
+      <Etiqueta>{titulo}</Etiqueta>
+      <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
         {itens.map((c) => (
-          <li key={c.id} className="flex items-center gap-2 pr-2">
-            <Link to={`/c/${c.id}`} className="flex min-w-0 flex-1 flex-col gap-0.5 px-4 py-4 hover:bg-giz">
-              <span className="truncate font-display text-2xl font-semibold">{c.nome}</span>
-              <span className="text-sm text-tinta/60">
+          <li key={c.id} className="flex items-center gap-2 pr-2 transition-colors hover:bg-giz/60">
+            <Link to={`/c/${c.id}`} className="flex min-w-0 flex-1 flex-col gap-0.5 px-4 py-3.5">
+              <span className="truncate text-lg font-semibold tracking-tight">{c.nome}</span>
+              <span className="text-sm text-tinta/55">
                 {[c.epoca, FORMATO_LABEL[c.formato], `${c.participantes[0]?.count ?? 0} equipas`,
                   c.estado === 'terminada' && 'Terminada'].filter(Boolean).join(' · ')}
               </span>
@@ -101,23 +101,34 @@ export default function Inicio() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="relvado px-4 pb-8 pt-10 text-white">
+      <header className="faixa px-4 text-white">
         <div className="mx-auto max-w-3xl">
-          <h1 className="font-display text-5xl font-bold">Competições</h1>
-          <label className="mt-5 block">
-            <span className="sr-only">Pesquisar competições</span>
-            <input type="search" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)}
-              placeholder="Pesquisar por nome ou época…"
-              className="w-full rounded-md border-0 bg-white px-4 py-3 text-base text-tinta shadow-sm placeholder:text-tinta/50 focus:outline-none focus:ring-2 focus:ring-cartao" />
-          </label>
+          <div className="flex h-14 items-center justify-between">
+            <Marca clara />
+            <Link to="/entrar" className="text-sm text-white/70 hover:text-white">Entrar</Link>
+          </div>
+          <div className="pb-8 pt-6">
+            <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Competições</h1>
+            <p className="mt-1 text-sm text-white/70">Tabelas, jogos e resultados em tempo real.</p>
+            <label className="relative mt-5 block">
+              <span className="sr-only">Pesquisar competições</span>
+              <svg aria-hidden viewBox="0 0 20 20" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-tinta/40">
+                <circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path d="m14 14 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input type="search" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)}
+                placeholder="Pesquisar por nome ou época…"
+                className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 text-base text-tinta shadow-sm placeholder:text-tinta/45 focus:outline-none focus:ring-3 focus:ring-white/40" />
+            </label>
+          </div>
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
         {erro && <p className="text-sm text-vermelho">Não foi possível carregar as competições. Tente novamente daqui a pouco.</p>}
         {aoVivo.jogos.length > 0 && (
           <section className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-vermelho">
-              <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-vermelho" />
+            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-vermelho">
+              <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-vermelho" />
               Ao vivo agora
             </h2>
             <div className="grid gap-2 sm:grid-cols-2">

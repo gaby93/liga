@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Aviso, Botao, Campo, Entrada } from '../../componentes/ui';
+import { Aviso, Botao, Campo, Entrada, Marca } from '../../componentes/ui';
 import { destinoDoPapel, obterPapel } from '../../lib/sessao';
 import { supabase } from '../../lib/supabase';
 
@@ -77,11 +77,12 @@ export default function Login() {
   const sair = async () => { await supabase.auth.signOut(); setSemAcesso(null); };
 
   return (
-    <div className="relvado grid min-h-screen place-items-center px-4 py-8">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 shadow-lg">
+    <div className="faixa flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-8">
+      <Link to="/" className="hover:opacity-80"><Marca clara /></Link>
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-xl bg-white p-6 shadow-xl sm:p-8">
         {semAcesso ? (
           <>
-            <h1 className="font-display text-3xl font-bold">Conta sem equipa</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Conta sem equipa</h1>
             <p className="text-sm">
               Entrou como <strong>{semAcesso}</strong>, mas este email ainda não está associado a nenhuma equipa.
               Peça à organização da liga para o registar como responsável da sua equipa e volte a entrar.
@@ -90,7 +91,7 @@ export default function Login() {
           </>
         ) : (
           <form onSubmit={submeter} className="flex flex-col gap-4">
-            <h1 className="font-display text-3xl font-bold">{TITULO[modo]}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{TITULO[modo]}</h1>
             {modo === 'criar' && (
               <p className="text-sm text-tinta/70">
                 Para responsáveis de equipa. Use o email que deu à organização da liga.

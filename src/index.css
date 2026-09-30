@@ -4,13 +4,17 @@
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-sans: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
 
+  /* Base neutra; o verde é só acento (ações, separador ativo, links) */
   --color-relva: #1e6b45;
-  --color-relva-escura: #134a2f;
-  --color-giz: #f6f8f4;
-  --color-tinta: #1b2433;
-  --color-linha: #d9dee3;
+  --color-relva-escura: #15543a;
+  --color-giz: #f1f4f0;
+  --color-tinta: #17202c;
+  --color-linha: #e3e6e9;
   --color-cartao: #f2c230;
   --color-vermelho: #d7263d;
+
+  /* Sombra quase impercetível dos cartões */
+  --shadow-cartao: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.03);
 }
 
 :root {
@@ -19,19 +23,32 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/*
+ * Faixa verde dos cabeçalhos: degradê suave com as linhas do campo
+ * (meio-campo e círculo central) quase transparentes por cima.
+ */
+.faixa {
+  background-color: var(--color-relva);
+  background-image:
+    /* círculo central, a 180px da direita */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='white' stroke-opacity='0.07' stroke-width='2'%3E%3Ccircle cx='100' cy='100' r='90'/%3E%3Ccircle cx='100' cy='100' r='4' fill='white' fill-opacity='0.07'/%3E%3C/g%3E%3C/svg%3E"),
+    /* linha do meio-campo, sempre de cima a baixo */
+    linear-gradient(to right, transparent calc(100% - 181px), rgb(255 255 255 / 0.07) calc(100% - 181px),
+      rgb(255 255 255 / 0.07) calc(100% - 179px), transparent calc(100% - 179px)),
+    linear-gradient(135deg, #134a2f 0%, #1a6040 45%, #22794d 100%);
+  background-position: right 80px center, center, center;
+  background-repeat: no-repeat;
+}
+
+/* Barras finas (gestão, área da equipa): só o degradê, sem desenho por trás dos links */
+.faixa.lisa {
+  background-image: linear-gradient(135deg, #134a2f 0%, #1a6040 45%, #22794d 100%);
+}
+
 body {
   background: var(--color-giz);
   color: var(--color-tinta);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-}
-
-/* Faixas de relva cortada, como num campo acabado de aparar */
-.relvado {
-  background-color: var(--color-relva);
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--color-relva) 0 56px,
-    #237a4f 56px 112px
-  );
+  text-rendering: optimizeLegibility;
 }

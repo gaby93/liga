@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
           // Qualquer endereço da app abre o index.html (a app é uma página só)
           navigateFallback: '/index.html',
+          // /api/* é do servidor (funções do Cloudflare), nunca da app
+          navigateFallbackDenylist: [/^\/api\//],
+          // Receber e mostrar as notificações push (public/sw-notificacoes.js)
+          importScripts: ['/sw-notificacoes.js'],
           cleanupOutdatedCaches: true,
           runtimeCaching: [
             {

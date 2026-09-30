@@ -7,7 +7,7 @@ import { Emblema } from './ui';
 
 const forma = {
   V: { cls: 'bg-relva', titulo: 'Vitória' },
-  E: { cls: 'bg-tinta/30', titulo: 'Empate' },
+  E: { cls: 'bg-tinta/25', titulo: 'Empate' },
   D: { cls: 'bg-vermelho', titulo: 'Derrota' },
 };
 
@@ -48,9 +48,9 @@ export function TabelaClassificacao({ linhas, equipas, linkEquipa, apurados = 0,
     <div className="overflow-x-auto">
       <table className="w-full min-w-[340px] border-collapse text-sm tabular-nums">
         <thead>
-          <tr className="border-b-2 border-tinta text-xs text-tinta/60">
-            <th className="w-10 py-2 pr-2 text-left font-medium"><span className="sr-only">Posição</span></th>
-            <th className="py-2 text-left font-medium">Equipa</th>
+          <tr className="border-b border-linha text-[11px] uppercase tracking-wider text-tinta/45">
+            <th className="w-8 py-2.5 pr-2 text-left font-semibold"><span className="sr-only">Posição</span></th>
+            <th className="py-2.5 text-left font-semibold">Equipa</th>
             <th className={num} title="Jogos">J</th>
             <th className={`${num} hidden sm:table-cell`} title="Vitórias">V</th>
             <th className={`${num} hidden sm:table-cell`} title="Empates">E</th>
@@ -64,9 +64,9 @@ export function TabelaClassificacao({ linhas, equipas, linkEquipa, apurados = 0,
         </thead>
         <tbody>
           {linhas.map((l) => (
-            <tr key={l.equipaId} className={`border-b align-middle ${l.posicao === apurados ? 'border-b-2 border-relva/60' : 'border-linha'} ${aJogar.has(l.equipaId) ? 'bg-vermelho/5' : ''}`}
+            <tr key={l.equipaId} className={`border-b align-middle ${l.posicao === apurados ? 'border-b-2 border-relva/60' : 'border-linha'} ${aJogar.has(l.equipaId) ? 'bg-vermelho/5' : 'hover:bg-giz/60'} transition-colors last:border-b-0`}
               title={l.posicao <= apurados ? 'Posição de apuramento' : undefined}>
-              <td className="py-3 pr-2 font-display text-3xl font-semibold leading-none text-relva">{l.posicao}</td>
+              <td className={`py-3 pr-2 text-sm font-semibold ${l.posicao <= Math.max(apurados, 1) ? 'text-relva' : 'text-tinta/45'}`}>{l.posicao}</td>
               <td className="py-3">
                 <div className="flex items-center gap-3">
                   <Emblema url={equipas.get(l.equipaId)?.emblema_url} nome={l.nome} />
@@ -90,11 +90,11 @@ export function TabelaClassificacao({ linhas, equipas, linkEquipa, apurados = 0,
               <td className={`${num} hidden md:table-cell`}>{l.gm}</td>
               <td className={`${num} hidden md:table-cell`}>{l.gs}</td>
               <td className={num}>{l.dg > 0 ? `+${l.dg}` : l.dg}</td>
-              <td className={`${num} font-display text-xl font-bold`}>{l.pts}</td>
+              <td className={`${num} text-base font-bold text-tinta`}>{l.pts}</td>
               <td className="hidden py-3 pl-3 lg:table-cell">
                 <div className="flex gap-1">
                   {l.forma.map((r, i) => (
-                    <span key={i} title={forma[r].titulo} className={`h-2.5 w-2.5 rounded-full ${forma[r].cls}`} />
+                    <span key={i} title={forma[r].titulo} className={`h-2 w-2 rounded-full ${forma[r].cls}`} />
                   ))}
                 </div>
               </td>

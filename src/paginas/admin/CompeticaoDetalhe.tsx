@@ -65,7 +65,7 @@ export default function CompeticaoDetalhe() {
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h1 className="font-display text-4xl font-bold">{c.nome}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{c.nome}</h1>
           <p className="text-sm text-tinta/60">
             {[c.epoca, FORMATO_LABEL[c.formato], ESTADO_COMPETICAO_LABEL[c.estado]].filter(Boolean).join(' · ')}
           </p>

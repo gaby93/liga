@@ -130,6 +130,62 @@ telemóvel) até ser gravado. Sem rede, fica "por enviar" e é enviado sozinho
 quando a ligação volta, sem duplicar. Só se pode terminar o jogo com a fila
 vazia. Durante o jogo, o ecrã não se apaga (nos telemóveis que o permitem).
 
+## Notificações
+
+Quem acompanha a liga recebe no telemóvel:
+
+- **Golos** dos jogos a decorrer (com o resultado, o minuto e o marcador);
+- **Início e fim** de cada jogo (com o resultado final);
+- **Jogos marcados ou remarcados**. Marcar várias datas de uma vez gera uma
+  só notificação de resumo por pessoa.
+
+No portal, o **sino** no topo de uma competição ativa as notificações de todos
+os jogos; **Seguir** na página de uma equipa, só dos jogos dela. Cada pessoa
+escolhe os tipos de aviso. No iPhone só funciona com a app instalada no ecrã
+principal (iOS 16.4 ou mais recente). Competições em rascunho nunca notificam.
+
+**Como funciona:** a base de dados (gatilhos + extensão `pg_net`) avisa a
+função `functions/api/notificar.ts`, publicada pelo Cloudflare Pages com o
+site, que cifra e envia cada notificação (Web Push). A chave secreta do
+Supabase fica só no Cloudflare.
+
+**Configuração (uma vez):**
+
+1. No SQL Editor, execute `supabase/migracoes/2026-10-03_notificacoes.sql`.
+2. No seu computador, gere o par de chaves VAPID:
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+   A chave pública vai para a app; a privada fica só no Cloudflare.
+3. No ficheiro `.env`, acrescente `VITE_VAPID_PUBLIC_KEY=` com a chave pública.
+4. No Cloudflare Pages, *Settings > Variables and Secrets* (Production):
+
+   | Nome | Tipo | Valor |
+   |---|---|---|
+   | `VITE_VAPID_PUBLIC_KEY` | Texto | a chave pública |
+   | `VAPID_PUBLIC_KEY` | Texto | a chave pública (outra vez) |
+   | `VAPID_PRIVATE_KEY` | Secret | a chave privada |
+   | `VAPID_SUBJECT` | Texto | `mailto:` + o seu email |
+   | `SUPABASE_URL` | Texto | o endereço do projeto Supabase |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Secret | Supabase > *Project Settings > API Keys*: a chave **secret** (ou a antiga `service_role`) |
+   | `NOTIFICAR_SEGREDO` | Secret | um texto longo e aleatório, inventado por si |
+   | `FUSO_HORARIO` | Texto (opcional) | por defeito `Africa/Maputo` |
+
+   Depois, em *Deployments*, volte a publicar a última versão (**Retry
+   deployment**), para a app ganhar a chave pública.
+5. No SQL Editor do Supabase, diga à base de dados para onde enviar (o mesmo
+   segredo do passo 4):
+   ```sql
+   update public.config_notificacoes
+      set url = 'https://a-sua-liga.pages.dev/api/notificar',
+          segredo = 'O-MESMO-NOTIFICAR_SEGREDO';
+   ```
+6. Teste: no telemóvel, toque no sino de uma competição e ative; depois comece
+   um jogo no modo jogo.
+
+Enquanto os passos 4 e 5 não estiverem feitos, o sino não aparece (sem chave
+pública) ou a base de dados simplesmente não pede envios. Nada falha por isso.
+
 ## App no telemóvel (PWA)
 
 O portal instala-se como uma app, sem loja de aplicações:
@@ -244,6 +300,7 @@ ordem, os ficheiros:
 4. `supabase/migracoes/2026-09-30_responsaveis.sql`
 5. `supabase/migracoes/2026-10-01_eliminatorias.sql`
 6. `supabase/migracoes/2026-10-02_modo_jogo.sql`
+7. `supabase/migracoes/2026-10-03_notificacoes.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 
@@ -343,6 +400,8 @@ src/lib/formatos.ts              grupos, quadro de eliminatórias e rondas segui
 src/lib/partilha.ts              imagens e texto para partilhar
 src/lib/aoVivo.ts                modo jogo: relógio, marcador e expulsões
 src/lib/exportar.ts              exportar para JSON e CSV (Excel)
+src/lib/notificacoes.ts          notificações: texto dos avisos e quem os recebe
+functions/api/notificar.ts       servidor (Cloudflare): envia as notificações push
 src/lib/fichas.ts                fichas de jogo: copiar a anterior, jogos disputados
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores

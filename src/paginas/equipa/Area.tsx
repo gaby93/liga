@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, Outlet, useOutletContext, useParams } from 'react-router-dom';
 import { FichaEquipa } from '../../componentes/FichaEquipa';
 import { FormularioJogador, abrirJogador, type EdicaoJogador } from '../../componentes/FormularioJogador';
-import { Aviso, Botao, Carregando, Emblema, Seccao } from '../../componentes/ui';
+import { Aviso, Botao, Carregando, Emblema, Marca, Seccao } from '../../componentes/ui';
 import { formatarData } from '../../lib/datas';
 import { nomeFase } from '../../lib/formatos';
 import { usePapel } from '../../lib/sessao';
@@ -34,13 +34,15 @@ export default function AreaEquipa() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-relva-escura text-white">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link to="/equipa" className="font-display text-2xl font-bold">Área da equipa</Link>
-          <span className="flex-1 truncate text-sm text-white/70">{papel.email}</span>
-          <Link to="/entrar/nova-palavra-passe" className="text-sm text-white/80 hover:text-white">Palavra-passe</Link>
-          <Link to="/" className="text-sm text-white/80 hover:text-white">Ver portal</Link>
-          <button type="button" onClick={() => supabase.auth.signOut()} className="text-sm text-white/80 hover:text-white">Sair</button>
+      <header className="faixa lisa sticky top-0 z-30 text-white shadow-sm">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
+          <Link to="/equipa" className="hover:opacity-80"><Marca texto="Área da equipa" clara /></Link>
+          <span className="flex-1 truncate text-sm text-white/60">{papel.email}</span>
+          <div className="flex items-center gap-4 text-sm text-white/70">
+            <Link to="/entrar/nova-palavra-passe" className="hover:text-white">Palavra-passe</Link>
+            <Link to="/" className="hover:text-white">Ver portal</Link>
+            <button type="button" onClick={() => supabase.auth.signOut()} className="hover:text-white">Sair</button>
+          </div>
         </div>
       </header>
       <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6">
@@ -119,7 +121,7 @@ export function PainelEquipa() {
     <>
       <div className="flex items-center gap-4">
         <Emblema url={equipa.emblema_url} nome={equipa.nome} tamanho={56} />
-        <h1 className="font-display text-4xl font-bold">{equipa.nome}</h1>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">{equipa.nome}</h1>
       </div>
       {erro && <Aviso>{erro}</Aviso>}
 
@@ -204,7 +206,7 @@ export function FichaJogoEquipa() {
     <>
       <Link to={`/equipa/${equipa.id}`} className="text-sm font-semibold text-relva hover:underline">‹ Voltar à equipa</Link>
       <div>
-        <h1 className="font-display text-4xl font-bold">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           {jogo.casa_id === equipa.id ? 'Em casa' : 'Fora'} contra {adversario?.nome}
         </h1>
         <p className="text-sm text-tinta/60">

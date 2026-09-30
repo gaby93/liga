@@ -17,11 +17,11 @@ export function TabelaMelhores({ linhas, posicao, equipas, linkEquipa, desigual 
   const num = 'px-2 py-2.5 text-center tabular-nums';
   return (
     <section>
-      <h2 className="mb-2 font-display text-3xl font-semibold">Melhores {posicao}.º classificados</h2>
+      <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Melhores {posicao}.º classificados</h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[320px] border-collapse text-sm">
           <thead>
-            <tr className="border-b-2 border-tinta text-xs text-tinta/60">
+            <tr className="border-b border-linha text-[11px] uppercase tracking-wider text-tinta/45">
               <th className="w-8 py-2 text-left font-medium"><span className="sr-only">Posição</span></th>
               <th className="py-2 text-left font-medium">Equipa</th>
               <th className={num} title="Grupo">Gr.</th>
@@ -37,7 +37,7 @@ export function TabelaMelhores({ linhas, posicao, equipas, linkEquipa, desigual 
               return (
                 <tr key={linha.equipaId}
                   className={`border-b ${ultimoApurado ? 'border-b-2 border-relva/60' : 'border-linha'} ${apurado ? '' : 'text-tinta/60'}`}>
-                  <td className="py-2.5 font-display text-xl font-semibold text-relva">{i + 1}</td>
+                  <td className={`py-2.5 text-sm font-semibold ${apurado ? 'text-relva' : 'text-tinta/45'}`}>{i + 1}</td>
                   <td className="py-2.5">
                     <span className="flex items-center gap-2">
                       <Emblema url={eq?.emblema_url} nome={linha.nome} tamanho={22} />
@@ -49,7 +49,7 @@ export function TabelaMelhores({ linhas, posicao, equipas, linkEquipa, desigual 
                   <td className={num}>{linha.grupo}</td>
                   <td className={num}>{linha.dg > 0 ? `+${linha.dg}` : linha.dg}</td>
                   <td className={num}>{linha.gm}</td>
-                  <td className={`${num} font-display text-lg font-bold`}>{linha.pts}</td>
+                  <td className={`${num} text-base font-bold text-tinta`}>{linha.pts}</td>
                 </tr>
               );
             })}

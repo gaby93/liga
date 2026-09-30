@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { EtiquetaAoVivo } from '../../componentes/AoVivo';
+import { SeguirEquipa } from '../../componentes/Notificacoes';
 import { ListaJogos, Placar } from '../../componentes/ListaJogos';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
 import { TabelaMelhores } from '../../componentes/TabelaMelhores';
-import { Carregando, Emblema } from '../../componentes/ui';
+import { Carregando, Emblema, Etiqueta } from '../../componentes/ui';
 import { resultadoEfetivo } from '../../lib/classificacao';
 import { formatarData } from '../../lib/datas';
 import { decidirEliminatoria, jogosDaChave, nomeFase } from '../../lib/formatos';
@@ -33,23 +34,35 @@ export function PaginaTabela() {
   if (d.competicao?.formato === 'grupos') {
     if (!d.grupos.length) return <p className="text-sm text-tinta/70">Os grupos ainda não foram sorteados.</p>;
     return (
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         {d.grupos.map((g) => (
           <section key={g.grupo}>
-            <h2 className="mb-2 font-display text-3xl font-semibold">Grupo {g.grupo}</h2>
-            <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} linkEquipa={links.equipa}
-              apurados={d.competicao!.apurados_por_grupo} jogos={d.jogos} linkJogo={links.jogo} />
+            <Etiqueta className="mb-2.5">Grupo {g.grupo}</Etiqueta>
+            <Cartao>
+              <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} linkEquipa={links.equipa}
+                apurados={d.competicao!.apurados_por_grupo} jogos={d.jogos} linkJogo={links.jogo} />
+            </Cartao>
           </section>
         ))}
-        <p className="text-xs text-tinta/60">
+        <p className="text-xs text-tinta/55">
           A linha verde marca as posições que dão acesso à fase final.
         </p>
-        <TabelaMelhores linhas={d.melhores} posicao={d.competicao!.apurados_por_grupo + 1} equipas={d.equipas}
-          linkEquipa={links.equipa} desigual={new Set(d.grupos.map((g) => g.linhas.length)).size > 1} />
+        {d.melhores.length > 0 && (
+          <Cartao>
+            <div className="py-4">
+              <TabelaMelhores linhas={d.melhores} posicao={d.competicao!.apurados_por_grupo + 1} equipas={d.equipas}
+                linkEquipa={links.equipa} desigual={new Set(d.grupos.map((g) => g.linhas.length)).size > 1} />
+            </div>
+          </Cartao>
+        )}
       </div>
     );
   }
-  return <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} linkEquipa={links.equipa} jogos={d.jogos} linkJogo={links.jogo} />;
+  return (
+    <Cartao>
+      <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} linkEquipa={links.equipa} jogos={d.jogos} linkJogo={links.jogo} />
+    </Cartao>
+  );
 }
 
 export function PaginaFaseFinal() {
@@ -83,21 +96,21 @@ export function PaginaMarcadores() {
   return (
     <div className="grid gap-10 md:grid-cols-2">
       <section>
-        <h2 className="mb-3 font-display text-3xl font-semibold">Melhores marcadores</h2>
+        <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Melhores marcadores</h2>
         {d.marcadores.length === 0 ? (
           <p className="text-sm text-tinta/70">Ainda não há golos registados.</p>
         ) : (
-          <ol className="divide-y divide-linha rounded-lg border border-linha bg-white">
+          <ol className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
             {d.marcadores.map((m, i) => (
               <li key={m.jogador.id}>
                 <Link to={links.jogador(m.jogador.id)} className="flex items-center gap-3 px-4 py-3 hover:bg-giz">
-                  <span className="w-6 font-display text-xl font-semibold text-relva">{i + 1}</span>
+                  <span className={`w-5 text-sm font-semibold ${i < 3 ? 'text-relva' : 'text-tinta/45'}`}>{i + 1}</span>
                   <Emblema url={m.jogador.foto_url} nome={m.jogador.nome} tamanho={32} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold">{m.jogador.nome}</div>
                     <div className="text-xs text-tinta/60">{nomeEquipa(m.jogador.equipa_id)}</div>
                   </div>
-                  <span className="font-display text-2xl font-bold tabular-nums">{m.golos}</span>
+                  <span className="text-xl font-semibold tabular-nums">{m.golos}</span>
                 </Link>
               </li>
             ))}
@@ -105,11 +118,11 @@ export function PaginaMarcadores() {
         )}
       </section>
       <section>
-        <h2 className="mb-3 font-display text-3xl font-semibold">Disciplina</h2>
+        <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Disciplina</h2>
         {d.disciplina.length === 0 ? (
           <p className="text-sm text-tinta/70">Sem cartões até agora.</p>
         ) : (
-          <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+          <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
             {d.disciplina.map((r) => (
               <li key={r.jogador.id}>
                 <Link to={links.jogador(r.jogador.id)} className="flex items-center gap-3 px-4 py-3 hover:bg-giz">
@@ -168,12 +181,13 @@ export function PaginaEquipa() {
       <header className="flex items-center gap-4">
         <Emblema url={equipa.emblema_url} nome={equipa.nome} tamanho={72} />
         <div>
-          <h2 className="font-display text-4xl font-bold leading-none">{equipa.nome}</h2>
+          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight">{equipa.nome}</h2>
           {linha && (
             <p className="mt-1 text-sm text-tinta/70">
               {linha.posicao}.º lugar{grupo ? ` no Grupo ${grupo.grupo}` : ''}, {linha.pts} pontos
             </p>
           )}
+          <div className="mt-3"><SeguirEquipa equipaId={equipa.id} nome={equipa.nome} /></div>
         </div>
       </header>
 
@@ -184,17 +198,17 @@ export function PaginaEquipa() {
 
       {proximo && (
         <section>
-          <h3 className="mb-2 font-display text-2xl font-semibold">{proximo.estado === 'em_curso' ? 'A jogar agora' : 'Próximo jogo'}</h3>
+          <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">{proximo.estado === 'em_curso' ? 'A jogar agora' : 'Próximo jogo'}</h3>
           <ListaJogos jogos={[proximo]} equipas={d.equipas} linkPara={links.jogo} />
         </section>
       )}
 
       <section>
-        <h3 className="mb-2 font-display text-2xl font-semibold">Plantel</h3>
+        <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Plantel</h3>
         {plantel.length === 0 ? (
           <p className="text-sm text-tinta/70">Plantel ainda não registado.</p>
         ) : (
-          <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+          <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
             {plantel.map((j) => {
               const est = d.estatisticas.get(j.id);
               return (
@@ -222,7 +236,7 @@ export function PaginaEquipa() {
       </section>
 
       <section>
-        <h3 className="mb-2 font-display text-2xl font-semibold">Jogos</h3>
+        <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Jogos</h3>
         <ListaJogos jogos={jogos} equipas={d.equipas} linkPara={links.jogo} vazio="Ainda sem jogos marcados." />
       </section>
     </div>
@@ -261,7 +275,7 @@ export function PaginaJogador() {
       <header className="flex items-center gap-4">
         <Emblema url={jogador.foto_url} nome={jogador.nome} tamanho={88} />
         <div>
-          <h2 className="font-display text-4xl font-bold leading-none">
+          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight">
             {jogador.numero != null && <span className="mr-2 text-relva">{jogador.numero}</span>}
             {jogador.nome}
           </h2>
@@ -291,11 +305,11 @@ export function PaginaJogador() {
       ]} />
 
       <section>
-        <h3 className="mb-2 font-display text-2xl font-semibold">Jogos</h3>
+        <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Jogos</h3>
         {jogos.length === 0 ? (
           <p className="text-sm text-tinta/70">Ainda sem jogos nesta competição.</p>
         ) : (
-          <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+          <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
             {jogos.map((j) => <LinhaJogoJogador key={j.id} jogo={j} d={d} eventos={eventos.filter((e) => e.jogo_id === j.id)} links={links} />)}
           </ul>
         )}
@@ -388,7 +402,7 @@ export function PaginaJogo() {
       </Link>
 
       {/* Marcador */}
-      <section className={`rounded-xl px-3 py-5 ${aoVivo ? 'bg-tinta text-white' : 'border border-linha bg-white'}`}>
+      <section className={`rounded-xl px-3 py-5 ${aoVivo ? 'bg-tinta text-white shadow-cartao' : 'border border-linha bg-white shadow-cartao'}`}>
         <p className={`mb-3 text-center text-xs ${aoVivo ? 'text-white/70' : 'text-tinta/60'}`}>
           {[nomeFase(jogo), jogo.grupo && `Grupo ${jogo.grupo}`].filter(Boolean).join(' · ')}
         </p>
@@ -431,11 +445,11 @@ export function PaginaJogo() {
       {/* Golos e cartões */}
       {(eventos.length > 0 || aoVivo) && (
         <section>
-          <h2 className="mb-2 font-display text-2xl font-semibold">Golos e cartões</h2>
+          <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Golos e cartões</h2>
           {eventos.length === 0 ? (
             <p className="text-sm text-tinta/70">Ainda sem golos nem cartões. Esta página atualiza-se sozinha.</p>
           ) : (
-            <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+            <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
               {eventos.map((e) => {
                 const daCasa = e.equipa_id === jogo.casa_id;
                 const conteudo = (
@@ -467,7 +481,7 @@ export function PaginaJogo() {
       {/* Convocados */}
       {convocados.length > 0 && (
         <section>
-          <h2 className="mb-2 font-display text-2xl font-semibold">Convocados</h2>
+          <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">Convocados</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {[jogo.casa_id, jogo.fora_id].map((id) => (
               <div key={id}>
@@ -475,7 +489,7 @@ export function PaginaJogo() {
                 {plantelNaFicha(id).length === 0 ? (
                   <p className="text-sm text-tinta/60">Ficha por preencher.</p>
                 ) : (
-                  <ul className="divide-y divide-linha rounded-lg border border-linha bg-white text-sm">
+                  <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao text-sm">
                     {plantelNaFicha(id).map((j) => (
                       <li key={j.id} className="flex items-center gap-3 px-3 py-2">
                         <span className="w-6 text-right font-display text-base font-semibold text-relva">{j.numero ?? ''}</span>
@@ -499,9 +513,9 @@ function Numeros({ itens }: { itens: [string, number | string][] }) {
   return (
     <dl className="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {itens.map(([rotulo, valor]) => (
-        <div key={rotulo} className="rounded-lg border border-linha bg-white px-3 py-2">
-          <dt className="text-xs text-tinta/60">{rotulo}</dt>
-          <dd className="font-display text-3xl font-bold tabular-nums">{valor}</dd>
+        <div key={rotulo} className="rounded-xl border border-linha bg-white px-3 py-2.5 shadow-cartao">
+          <dt className="text-[11px] font-semibold uppercase tracking-wider text-tinta/45">{rotulo}</dt>
+          <dd className="mt-0.5 text-2xl font-semibold tabular-nums">{valor}</dd>
         </div>
       ))}
     </dl>
@@ -532,4 +546,9 @@ function NaoEncontrado({ o }: { o: string }) {
       {o} <Link to={`/c/${id}`} className="font-semibold text-relva hover:underline">Voltar à competição</Link>
     </p>
   );
+}
+
+/** Cartão branco para tabelas e listas do portal. */
+function Cartao({ children }: { children: ReactNode }) {
+  return <div className="overflow-hidden rounded-xl border border-linha bg-white px-3 shadow-cartao sm:px-5">{children}</div>;
 }

@@ -1,5 +1,5 @@
 import { Link, Navigate, NavLink, Outlet } from 'react-router-dom';
-import { Botao, Carregando } from '../../componentes/ui';
+import { Botao, Carregando, Marca } from '../../componentes/ui';
 import { usePapel } from '../../lib/sessao';
 import { supabase } from '../../lib/supabase';
 
@@ -27,20 +27,23 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-tinta text-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link to="/admin" className="font-display text-2xl font-bold">Gestão da liga</Link>
+      <header className="faixa lisa sticky top-0 z-30 text-white shadow-sm">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
+          <Link to="/admin" className="hover:opacity-80"><Marca texto="Gestão da liga" clara /></Link>
           <nav className="flex flex-1 flex-wrap gap-1" aria-label="Administração">
             {links.map((l) => (
               <NavLink key={l.to} to={l.to}
-                className={({ isActive }) => `rounded px-3 py-1.5 text-sm font-medium ${isActive ? 'bg-white/15' : 'text-white/80 hover:bg-white/10'}`}>
+                className={({ isActive }) => `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  isActive ? 'bg-white/15 text-white' : 'text-white/75 hover:bg-white/10 hover:text-white'}`}>
                 {l.rotulo}
               </NavLink>
             ))}
           </nav>
-          <Link to="/entrar/nova-palavra-passe" className="text-sm text-white/80 hover:text-white">Palavra-passe</Link>
-          <Link to="/" className="text-sm text-white/80 hover:text-white">Ver portal</Link>
-          <button type="button" onClick={sair} className="text-sm text-white/80 hover:text-white">Sair</button>
+          <div className="flex items-center gap-4 text-sm text-white/70">
+            <Link to="/entrar/nova-palavra-passe" className="hover:text-white">Palavra-passe</Link>
+            <Link to="/" className="hover:text-white">Ver portal</Link>
+            <button type="button" onClick={sair} className="hover:text-white">Sair</button>
+          </div>
         </div>
       </header>
       <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">

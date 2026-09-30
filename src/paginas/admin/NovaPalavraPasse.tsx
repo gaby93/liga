@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Aviso, Botao, Campo, Carregando, Entrada } from '../../componentes/ui';
+import { Aviso, Botao, Campo, Carregando, Entrada, Marca } from '../../componentes/ui';
 import { destinoDoPapel, obterPapel } from '../../lib/sessao';
 import { supabase } from '../../lib/supabase';
 
@@ -63,9 +63,10 @@ export default function NovaPalavraPasse() {
   };
 
   return (
-    <div className="relvado grid min-h-screen place-items-center px-4 py-8">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-lg bg-white p-6 shadow-lg">
-        <h1 className="font-display text-3xl font-bold">Nova palavra-passe</h1>
+    <div className="faixa flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-8">
+      <Link to="/" className="hover:opacity-80"><Marca clara /></Link>
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-xl bg-white p-6 shadow-xl sm:p-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Nova palavra-passe</h1>
         {estado === 'a_verificar' && <Carregando />}
         {estado === 'sem_sessao' && (
           <>

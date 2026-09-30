@@ -64,8 +64,8 @@ export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O ca
     <div className="flex flex-col gap-6">
       {blocosDeJogos(jogos).map(({ titulo, jogos: lista }) => (
         <div key={titulo}>
-          <h3 className="mb-2 font-display text-xl font-semibold">{titulo}</h3>
-          <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+          <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-relva">{titulo}</h3>
+          <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-white shadow-cartao">
             {lista.map((j) => {
               const casa = equipas.get(j.casa_id);
               const fora = equipas.get(j.fora_id);
@@ -73,7 +73,7 @@ export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O ca
                 .filter(Boolean).join(', ');
               const conteudo = (
                 <>
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div className="mx-auto grid max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-3">
                     <div className="flex min-w-0 items-center justify-end gap-2 text-right">
                       {nomeEquipa(j.casa_id, 'text-right')}
                       <Emblema url={casa?.emblema_url} nome={casa?.nome ?? '?'} tamanho={24} />
@@ -84,13 +84,13 @@ export function ListaJogos({ jogos, equipas, linkPara, linkEquipa, vazio = 'O ca
                       {nomeEquipa(j.fora_id, '')}
                     </div>
                   </div>
-                  <p className="mt-1 text-center text-xs text-tinta/60">{detalhes}</p>
+                  <p className="mt-1.5 text-center text-xs text-tinta/50">{detalhes}</p>
                 </>
               );
               return (
                 <li key={j.id}>
                   {linkPara ? (
-                    <Link to={linkPara(j)} className="block px-3 py-3 hover:bg-giz focus-visible:outline-2 focus-visible:outline-relva">{conteudo}</Link>
+                    <Link to={linkPara(j)} className="block px-3 py-3.5 transition-colors hover:bg-giz/60 focus-visible:outline-2 focus-visible:outline-relva">{conteudo}</Link>
                   ) : (
                     <div className="px-3 py-3">{conteudo}</div>
                   )}
