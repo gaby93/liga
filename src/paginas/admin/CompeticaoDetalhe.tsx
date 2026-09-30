@@ -12,6 +12,7 @@ import {
   nomeEliminatoria, nomesGrupos, planearCalendario, planearFaseFinal, planearProximaRonda, regrasDaCompeticao, sortearGrupos,
   type JogoPlaneado,
 } from '../../lib/formatos';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import {
   CRITERIO_LABEL, ESTADO_COMPETICAO_LABEL, FORMATO_LABEL,
@@ -27,13 +28,19 @@ export default function CompeticaoDetalhe() {
   const [todasEquipas, setTodasEquipas] = useState<Equipa[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [parametros, setParametros] = useSearchParams();
+  const gestao = useGestao();
+  const org = d.competicao?.organizacao_id;
 
+  // Só as equipas da organização da competição podem ser inscritas
   useEffect(() => {
-    supabase.from('equipas').select('*').order('nome').then(({ data }) => setTodasEquipas((data ?? []) as Equipa[]));
-  }, []);
+    if (!org) return;
+    supabase.from('equipas').select('*').eq('organizacao_id', org).order('nome')
+      .then(({ data }) => setTodasEquipas((data ?? []) as Equipa[]));
+  }, [org]);
 
   if (d.carregando) return <Carregando />;
   if (!d.competicao) return <Aviso>{d.erro ?? 'Competição não encontrada.'}</Aviso>;
+  if (!gestao.gere(org)) return <Aviso>Esta competição pertence a outra organização.</Aviso>;
 
   const executar = async (acao: () => PromiseLike<{ error: unknown }>) => {
     const { error } = await acao();

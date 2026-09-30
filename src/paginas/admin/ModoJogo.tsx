@@ -5,6 +5,7 @@ import {
   ROTULO_ACAO, aplicarAcao, expulsos, minutoAtual, minutoEParte, placarDosEventos, proximaAcao, type Acao,
 } from '../../lib/aoVivo';
 import { nomeFase, precisaPenaltis } from '../../lib/formatos';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Evento, Jogador, TipoEvento } from '../../lib/types';
 import { useAgora } from '../../lib/useAgora';
@@ -34,6 +35,7 @@ function gravarFila(jogoId: string, fila: Evento[]) {
 export default function ModoJogo() {
   const { id } = useParams();
   const f = useFichaJogo(id);
+  const gestao = useGestao();
   const { jogo, setJogo, eventos, setEventos } = f;
   const agora = useAgora(5000);
   const [fila, setFila] = useState<Evento[]>(() => (id ? lerFila(id) : []));
@@ -103,6 +105,7 @@ export default function ModoJogo() {
   }, [fila.length]);
 
   if (!jogo) return f.erro ? <Aviso>{f.erro}</Aviso> : <Carregando />;
+  if (f.competicao && !gestao.gere(f.competicao.organizacao_id)) return <Aviso>Este jogo pertence a outra organização.</Aviso>;
 
   const casa = f.equipas.get(jogo.casa_id);
   const fora = f.equipas.get(jogo.fora_id);

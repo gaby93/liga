@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Aviso, Botao, Campo, Emblema, Entrada, Seccao } from '../../componentes/ui';
 import { carregarImagem } from '../../lib/imagens';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Equipa } from '../../lib/types';
 
@@ -13,16 +14,20 @@ export default function Equipas() {
   const [erro, setErro] = useState<string | null>(null);
   const [aGuardar, setAGuardar] = useState(false);
   const [responsaveis, setResponsaveis] = useState<{ equipa_id: string; email: string }[]>([]);
+  const org = useGestao().atual!.id;
 
+  // Só as equipas da organização escolhida
   const carregar = useCallback(async () => {
-    const [e, r] = await Promise.all([
-      supabase.from('equipas').select('*').order('nome'),
-      supabase.from('responsaveis').select('equipa_id, email').order('email'),
-    ]);
-    if (e.error || r.error) return setErro(mensagemErro(e.error ?? r.error));
+    const e = await supabase.from('equipas').select('*').eq('organizacao_id', org).order('nome');
+    if (e.error) return setErro(mensagemErro(e.error));
+    const ids = (e.data as Equipa[]).map((x) => x.id);
+    const r = ids.length
+      ? await supabase.from('responsaveis').select('equipa_id, email').in('equipa_id', ids).order('email')
+      : { data: [], error: null };
+    if (r.error) return setErro(mensagemErro(r.error));
     setLista(e.data as Equipa[]);
     setResponsaveis(r.data as { equipa_id: string; email: string }[]);
-  }, []);
+  }, [org]);
   const comAcesso = (equipaId: string) => responsaveis.filter((r) => r.equipa_id === equipaId).map((r) => r.email);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -39,7 +44,7 @@ export default function Equipas() {
       };
       const { error } = edicao.id
         ? await supabase.from('equipas').update(dados).eq('id', edicao.id)
-        : await supabase.from('equipas').insert(dados);
+        : await supabase.from('equipas').insert({ ...dados, organizacao_id: org });
       if (error) throw error;
       setEdicao(null);
       await carregar();

@@ -16,12 +16,14 @@ export async function abrirJogador(j: Jogador): Promise<EdicaoJogador> {
  * Formulário de jogador. No backoffice escolhe-se a equipa e a suspensão manual;
  * na área da equipa, a equipa é fixa e a suspensão não aparece (é decisão da organização).
  */
-export function FormularioJogador({ inicial, equipas, equipaFixa, comSuspensao, onGuardado, onCancelar }: {
+export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId, comSuspensao, onGuardado, onCancelar }: {
   inicial: EdicaoJogador;
   /** Equipas à escolha (backoffice). */
   equipas: Equipa[];
   /** Área da equipa: o jogador fica sempre nesta equipa e o campo não aparece. */
   equipaFixa?: string;
+  /** Organização do jogador sem equipa (com equipa, a base de dados usa a da equipa). */
+  organizacaoId?: string;
   comSuspensao: boolean;
   onGuardado: () => void;
   onCancelar: () => void;
@@ -39,6 +41,7 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, comSuspensao, 
       const publico = {
         nome: edicao.nome!.trim(),
         equipa_id: equipaFixa ?? (edicao.equipa_id || null),
+        ...(organizacaoId ? { organizacao_id: organizacaoId } : {}),
         numero: edicao.numero ?? null,
         foto_url,
         // Só se envia "suspenso" quando o formulário o mostra (admin)

@@ -8,8 +8,8 @@ const jogo = (id: string, jornada: number, estado: EstadoJogo, extra: Partial<Jo
   penaltis_casa: null, penaltis_fora: null, mao: null, periodo: null, relogio_inicio: null, relogio_base: 0, ...extra,
 });
 const equipas = new Map<string, Equipa>([
-  ['A', { id: 'A', nome: 'Águias', emblema_url: null, responsavel: null, contacto: null }],
-  ['B', { id: 'B', nome: 'Leões', emblema_url: null, responsavel: null, contacto: null }],
+  ['A', { id: 'A', organizacao_id: 'o1', nome: 'Águias', emblema_url: null, responsavel: null, contacto: null }],
+  ['B', { id: 'B', organizacao_id: 'o1', nome: 'Leões', emblema_url: null, responsavel: null, contacto: null }],
 ]);
 
 describe('imagens para partilhar', () => {

@@ -8,6 +8,7 @@ import Equipas from './paginas/admin/Equipas';
 import JogoFicha from './paginas/admin/JogoFicha';
 import ModoJogo from './paginas/admin/ModoJogo';
 import NoCampo from './paginas/admin/NoCampo';
+import Organizacoes from './paginas/admin/Organizacoes';
 import Jogadores from './paginas/admin/Jogadores';
 import Login from './paginas/admin/Login';
 import NovaPalavraPasse from './paginas/admin/NovaPalavraPasse';
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="jogos/:id" element={<JogoFicha />} />
           <Route path="jogos/:id/campo" element={<ModoJogo />} />
           <Route path="campo" element={<NoCampo />} />
+          <Route path="organizacoes" element={<Organizacoes />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -5,6 +5,7 @@ import { Aviso, Botao, Campo, Carregando, Emblema, Entrada, Seccao, Seletor } fr
 import { deInputLocal, paraInputLocal } from '../../lib/datas';
 import { eventosForaDaFicha } from '../../lib/fichas';
 import { decidirEliminatoria, jogosDaChave, nomeFase, precisaPenaltis } from '../../lib/formatos';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import { ESTADO_JOGO_LABEL, type EstadoJogo, type Evento, type TipoEvento } from '../../lib/types';
 import { useFichaJogo } from '../../lib/useFichaJogo';
@@ -14,12 +15,14 @@ const TIPOS: Record<TipoEvento, string> = { golo: 'Golo', autogolo: 'Autogolo', 
 export default function JogoFicha() {
   const { id } = useParams();
   const f = useFichaJogo(id);
+  const gestao = useGestao();
   const { jogo, setJogo, equipas, jogadores, eventos, motivoSuspensao, doJogo, erro, setErro, carregar } = f;
   const [guardado, setGuardado] = useState(false);
   const [novo, setNovo] = useState<{ tipo: TipoEvento; equipa_id: string; jogador_id: string; minuto: string }>(
     { tipo: 'golo', equipa_id: '', jogador_id: '', minuto: '' });
 
   if (!jogo) return erro ? <Aviso>{erro}</Aviso> : <Carregando />;
+  if (f.competicao && !gestao.gere(f.competicao.organizacao_id)) return <Aviso>Este jogo pertence a outra organização.</Aviso>;
 
   const casa = equipas.get(jogo.casa_id);
   const fora = equipas.get(jogo.fora_id);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FormularioJogador, abrirJogador, type EdicaoJogador } from '../../componentes/FormularioJogador';
 import { Aviso, Botao, Emblema, Seccao, Seletor } from '../../componentes/ui';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Equipa, Jogador } from '../../lib/types';
 
@@ -10,17 +11,21 @@ export default function Jogadores() {
   const [filtro, setFiltro] = useState('');
   const [edicao, setEdicao] = useState<EdicaoJogador | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const org = useGestao().atual!.id;
 
+  // Só as equipas e os jogadores da organização escolhida
   const carregar = useCallback(async () => {
     const [e, j] = await Promise.all([
-      supabase.from('equipas').select('*').order('nome'),
-      supabase.from('jogadores').select('*').order('nome'),
+      supabase.from('equipas').select('*').eq('organizacao_id', org).order('nome'),
+      supabase.from('jogadores').select('*').eq('organizacao_id', org).order('nome'),
     ]);
     if (e.error || j.error) return setErro(mensagemErro(e.error ?? j.error));
     setEquipas(e.data as Equipa[]);
     setLista(j.data as Jogador[]);
-  }, []);
+  }, [org]);
   useEffect(() => { carregar(); }, [carregar]);
+  // Ao mudar de organização, o filtro de equipa deixa de fazer sentido
+  useEffect(() => { setFiltro(''); setEdicao(null); }, [org]);
 
   const abrir = async (j?: Jogador) => {
     setErro(null);
@@ -40,7 +45,7 @@ export default function Jogadores() {
   return (
     <>
       {edicao && (
-        <FormularioJogador key={edicao.id ?? 'novo'} inicial={edicao} equipas={equipas} comSuspensao
+        <FormularioJogador key={edicao.id ?? 'novo'} inicial={edicao} equipas={equipas} organizacaoId={org} comSuspensao
           onGuardado={() => { setEdicao(null); carregar(); }} onCancelar={() => setEdicao(null)} />
       )}
 

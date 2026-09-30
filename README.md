@@ -208,6 +208,26 @@ Depois de instalada:
 O ficheiro `public/_headers` impede que o Cloudflare guarde em cache o service
 worker, para as atualizações chegarem logo.
 
+## Organizações e administradores
+
+A plataforma pode ter várias ligas (organizações), cada uma com as suas
+competições, equipas e jogadores, separadas entre si.
+
+- **Super admin** (quem está na tabela `admins`): vê e gere tudo. Na página
+  **Organizações** do backoffice cria organizações e dá acesso aos respetivos
+  administradores, por email.
+- **Admin de organização**: entra no mesmo `/entrar` (cria conta com o email
+  que o super admin registou e confirma-o) e só vê e gere as suas
+  organizações. Se gerir mais de uma, escolhe-a no topo do backoffice.
+- As regras estão na base de dados: um admin não consegue alterar nada de
+  outra organização, ler os dados pessoais dos jogadores dela, nem misturar
+  equipas de organizações diferentes numa competição. As competições em
+  rascunho só são visíveis para a própria organização.
+- O portal público continua a mostrar todas as competições publicadas.
+
+Ao instalar a migração, tudo o que já existia fica numa organização chamada
+"Organização principal": renomeie-a na página **Organizações**.
+
 ## Área da equipa (responsáveis)
 
 Cada equipa pode ter responsáveis que gerem o próprio plantel e as fichas de
@@ -301,6 +321,7 @@ ordem, os ficheiros:
 5. `supabase/migracoes/2026-10-01_eliminatorias.sql`
 6. `supabase/migracoes/2026-10-02_modo_jogo.sql`
 7. `supabase/migracoes/2026-10-03_notificacoes.sql`
+8. `supabase/migracoes/2026-10-04_organizacoes.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 
@@ -415,8 +436,10 @@ src/paginas/equipa/              área dos responsáveis de equipa
 
 ## Segurança
 
-- Leitura pública em tudo o que o portal mostra; escrita só para quem está na
-  tabela `admins` (verificado na base de dados pelas políticas RLS).
+- Leitura pública em tudo o que o portal mostra (exceto competições em
+  rascunho); escrita só para quem gere a organização: o super admin (tabela
+  `admins`) ou os admins da organização (tabela `admins_organizacao`, por
+  email confirmado). Tudo verificado na base de dados pelas políticas RLS.
 - Responsáveis de equipa (tabela `responsaveis`, por email confirmado) só
   escrevem no plantel e nas fichas de jogo da própria equipa. Suspender
   jogadores continua reservado aos administradores (trigger na base de dados).

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { linhasResultados, nomeFicheiro, paraCsv } from './exportar';
 import type { Equipa, Jogo } from './types';
 
-const eq = (id: string, nome: string): [string, Equipa] => [id, { id, nome, emblema_url: null, responsavel: null, contacto: null }];
+const eq = (id: string, nome: string): [string, Equipa] => [id, { id, organizacao_id: 'o1', nome, emblema_url: null, responsavel: null, contacto: null }];
 const jogo = (extra: Partial<Jogo>): Jogo => ({
   id: 'j', competicao_id: 'c', jornada: 1, casa_id: 'A', fora_id: 'B', data_hora: null, campo: null,
   golos_casa: null, golos_fora: null, estado: 'agendado', grupo: null, eliminatoria: null, chave: null,

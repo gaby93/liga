@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Aviso, Carregando, Emblema, Seccao } from '../../componentes/ui';
 import { nomeParte, rotuloAoVivo } from '../../lib/aoVivo';
 import { nomeFase } from '../../lib/formatos';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Equipa, Jogo } from '../../lib/types';
 import { useAgora } from '../../lib/useAgora';
@@ -15,14 +16,16 @@ export default function NoCampo() {
   const [jogos, setJogos] = useState<JogoLista[] | null>(null);
   const [equipas, setEquipas] = useState<Map<string, Equipa>>(new Map());
   const [erro, setErro] = useState<string | null>(null);
+  const org = useGestao().atual!.id;
 
   useEffect(() => {
     const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
     const fim = new Date(inicio); fim.setDate(fim.getDate() + 1);
-    const campos = '*, competicao:competicoes(nome)';
+    // Só os jogos das competições da organização escolhida
+    const campos = '*, competicao:competicoes!inner(nome, organizacao_id)';
     Promise.all([
-      supabase.from('jogos').select(campos).eq('estado', 'em_curso'),
-      supabase.from('jogos').select(campos).in('estado', ['agendado', 'terminado'])
+      supabase.from('jogos').select(campos).eq('competicao.organizacao_id', org).eq('estado', 'em_curso'),
+      supabase.from('jogos').select(campos).eq('competicao.organizacao_id', org).in('estado', ['agendado', 'terminado'])
         .gte('data_hora', inicio.toISOString()).lt('data_hora', fim.toISOString()),
     ]).then(async ([a, b]) => {
       if (a.error || b.error) return setErro(mensagemErro(a.error ?? b.error));
@@ -34,7 +37,7 @@ export default function NoCampo() {
       setEquipas(new Map(((e.data ?? []) as Equipa[]).map((x) => [x.id, x])));
       setJogos(lista);
     });
-  }, []);
+  }, [org]);
 
   if (erro) return <Aviso>{erro}</Aviso>;
   if (!jogos) return <Carregando />;

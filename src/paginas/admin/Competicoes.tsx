@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Aviso, Botao, Campo, Entrada, Seccao, Seletor } from '../../componentes/ui';
+import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import { ESTADO_COMPETICAO_LABEL, FORMATO_LABEL, type Competicao, type Formato } from '../../lib/types';
 
@@ -12,18 +13,22 @@ export default function Competicoes() {
   const [aCriar, setACriar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const navegar = useNavigate();
+  const { atual } = useGestao();
+  const org = atual!.id;
 
+  // Só as competições da organização escolhida
   const carregar = useCallback(async () => {
-    const { data, error } = await supabase.from('competicoes').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('competicoes').select('*').eq('organizacao_id', org)
+      .order('created_at', { ascending: false });
     if (error) setErro(mensagemErro(error));
     else setLista(data as Competicao[]);
-  }, []);
+  }, [org]);
   useEffect(() => { carregar(); }, [carregar]);
 
   const criar = async (e: FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.from('competicoes')
-      .insert({ nome: nome.trim(), epoca: epoca.trim() || null, formato }).select('id').single();
+      .insert({ nome: nome.trim(), epoca: epoca.trim() || null, formato, organizacao_id: org }).select('id').single();
     if (error) return setErro(mensagemErro(error));
     navegar(`/admin/competicoes/${data.id}`);
   };

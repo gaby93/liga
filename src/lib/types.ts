@@ -45,8 +45,15 @@ export const ESTADO_COMPETICAO_LABEL: Record<EstadoCompeticao, string> = {
   terminada: 'Terminada',
 };
 
+/** Uma liga: tem as suas competições, equipas e jogadores, e os seus administradores. */
+export interface Organizacao {
+  id: string;
+  nome: string;
+}
+
 export interface Competicao {
   id: string;
+  organizacao_id: string;
   nome: string;
   epoca: string | null;
   estado: EstadoCompeticao;
@@ -70,6 +77,7 @@ export interface Competicao {
 
 export interface Equipa {
   id: string;
+  organizacao_id: string;
   nome: string;
   emblema_url: string | null;
   responsavel: string | null;
@@ -85,6 +93,8 @@ export interface Participante {
 
 export interface Jogador {
   id: string;
+  /** Com equipa, é sempre a da equipa (preenchida pela base de dados). */
+  organizacao_id: string;
   equipa_id: string | null;
   nome: string;
   numero: number | null;

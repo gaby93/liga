@@ -3,19 +3,27 @@ import { supabase } from './supabase';
 
 export type Papel =
   | { tipo: 'sem_sessao' }
-  | { tipo: 'admin'; email: string }
+  /** super: gere todas as organizações (e quem as administra); senão, só as atribuídas. */
+  | { tipo: 'admin'; email: string; super: boolean; organizacoes: string[] }
   | { tipo: 'responsavel'; email: string; equipas: string[] }
   | { tipo: 'sem_acesso'; email: string };
 
-/** O que a pessoa com sessão pode fazer: gerir tudo, gerir as suas equipas, ou nada. */
+/** Uma função da base de dados que devolve uma lista de ids (setof uuid). */
+const ids = (dados: unknown) =>
+  ((dados ?? []) as unknown[]).map((x) => (typeof x === 'string' ? x : Object.values(x as object)[0] as string));
+
+/** O que a pessoa com sessão pode fazer: gerir organizações, gerir as suas equipas, ou nada. */
 export async function obterPapel(): Promise<Papel> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { tipo: 'sem_sessao' };
   const email = session.user.email ?? '';
-  const [admin, equipas] = await Promise.all([supabase.rpc('is_admin'), supabase.rpc('minhas_equipas')]);
-  if (admin.data) return { tipo: 'admin', email };
-  const ids = ((equipas.data ?? []) as unknown[]).map((x) => (typeof x === 'string' ? x : Object.values(x as object)[0] as string));
-  if (ids.length) return { tipo: 'responsavel', email, equipas: ids };
+  const [admin, organizacoes, equipas] = await Promise.all([
+    supabase.rpc('is_admin'), supabase.rpc('minhas_organizacoes'), supabase.rpc('minhas_equipas'),
+  ]);
+  const orgs = ids(organizacoes.data);
+  if (admin.data || orgs.length) return { tipo: 'admin', email, super: Boolean(admin.data), organizacoes: orgs };
+  const eqs = ids(equipas.data);
+  if (eqs.length) return { tipo: 'responsavel', email, equipas: eqs };
   return { tipo: 'sem_acesso', email };
 }
 
