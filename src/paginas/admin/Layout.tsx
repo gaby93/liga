@@ -38,6 +38,7 @@ export default function AdminLayout() {
               </NavLink>
             ))}
           </nav>
+          <Link to="/entrar/nova-palavra-passe" className="text-sm text-white/80 hover:text-white">Palavra-passe</Link>
           <Link to="/" className="text-sm text-white/80 hover:text-white">Ver portal</Link>
           <button type="button" onClick={sair} className="text-sm text-white/80 hover:text-white">Sair</button>
         </div>

@@ -34,6 +34,22 @@ export function rotuloAoVivo(r: Relogio, agora: number): string {
   return m == null ? 'A decorrer' : `${m}'`;
 }
 
+/** Parte do jogo a decorrer: "1.ª parte", "2.ª parte" ou "Intervalo" (null fora do jogo). */
+export function nomeParte(r: Relogio): string | null {
+  if (r.estado !== 'em_curso') return null;
+  if (r.periodo === '1p') return '1.ª parte';
+  if (r.periodo === '2p') return '2.ª parte';
+  if (r.periodo === 'intervalo') return 'Intervalo';
+  return null;
+}
+
+/** Minuto e parte juntos: "23' · 1.ª parte", ou "Intervalo". */
+export function minutoEParte(r: Relogio, agora: number): string {
+  const rotulo = rotuloAoVivo(r, agora);
+  const parte = nomeParte(r);
+  return parte && parte !== rotulo ? `${rotulo} · ${parte}` : rotulo;
+}
+
 export type Acao = 'comecar' | 'intervalo' | 'segunda' | 'terminar';
 
 /** Próximo passo do jogo, pela ordem: começar → intervalo → 2.ª parte → terminar. */
@@ -61,6 +77,23 @@ export function aplicarAcao(r: Relogio, acao: Acao, agora: number): Relogio {
     case 'segunda': return { ...r, periodo: '2p', relogio_inicio: iso };
     case 'terminar': return { ...r, estado: 'terminado', periodo: null, relogio_inicio: null, relogio_base: minutosJogados(r, agora) };
   }
+}
+
+/** Jogo a decorrer de cada equipa (para assinalar na tabela quem está a jogar). */
+export function jogosAoVivoPorEquipa<T extends { estado: EstadoJogo; casa_id: string; fora_id: string }>(jogos: T[]): Map<string, T> {
+  const m = new Map<string, T>();
+  for (const j of jogos) {
+    if (j.estado !== 'em_curso') continue;
+    m.set(j.casa_id, j);
+    m.set(j.fora_id, j);
+  }
+  return m;
+}
+
+/** Resultado visto por uma equipa: [golos dela, golos do adversário]. */
+export function resultadoPara(j: { casa_id: string; golos_casa: number | null; golos_fora: number | null }, equipaId: string): [number, number] {
+  const [c, f] = [j.golos_casa ?? 0, j.golos_fora ?? 0];
+  return j.casa_id === equipaId ? [c, f] : [f, c];
 }
 
 export interface EventoPlacar {

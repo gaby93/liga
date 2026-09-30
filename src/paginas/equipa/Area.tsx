@@ -38,6 +38,7 @@ export default function AreaEquipa() {
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link to="/equipa" className="font-display text-2xl font-bold">Área da equipa</Link>
           <span className="flex-1 truncate text-sm text-white/70">{papel.email}</span>
+          <Link to="/entrar/nova-palavra-passe" className="text-sm text-white/80 hover:text-white">Palavra-passe</Link>
           <Link to="/" className="text-sm text-white/80 hover:text-white">Ver portal</Link>
           <button type="button" onClick={() => supabase.auth.signOut()} className="text-sm text-white/80 hover:text-white">Sair</button>
         </div>

@@ -91,6 +91,12 @@ As regras aplicam-se às rondas que ainda vão ser geradas.
   época. A ☆ marca uma competição como favorita, e as favoritas aparecem
   primeiro nas visitas seguintes (ficam guardadas no próprio browser). As
   terminadas estão numa secção à parte.
+- **Ao vivo**: os jogos a decorrer aparecem em "Ao vivo agora" na página
+  inicial (os das competições favoritas primeiro) e numa faixa no topo da
+  competição, com o resultado e o minuto, atualizados em tempo real.
+- **Página do jogo** (tocar num jogo em qualquer lista): marcador, golos e
+  cartões com o minuto, de cada lado, e os convocados. Durante o jogo
+  atualiza-se sozinha.
 - **Tabela / Grupos / Quadro** (conforme o formato), **Fase final**, **Jogos**
   e **Marcadores**.
 - **Página de equipa** (clicar no nome em qualquer tabela ou jogo): posição,
@@ -169,9 +175,14 @@ alterar a ficha depois de o jogo terminar. Estas regras estão na base de dados
   ligado. O acesso só é dado a emails confirmados; sem confirmação, qualquer
   pessoa podia criar conta com o email de um responsável.
 - *Authentication > URL Configuration*: em **Site URL** ponha o endereço do
-  site (ex.: `https://a-sua-liga.pages.dev`) e acrescente
-  `https://a-sua-liga.pages.dev/entrar` em **Redirect URLs**, para o link de
-  confirmação voltar ao site.
+  site (ex.: `https://a-sua-liga.pages.dev`) e acrescente em **Redirect URLs**
+  `https://a-sua-liga.pages.dev/entrar` (confirmação da conta) e
+  `https://a-sua-liga.pages.dev/entrar/nova-palavra-passe` (recuperar a
+  palavra-passe), para os links dos emails voltarem ao site.
+
+**Esqueceu-se da palavra-passe?** Em `/entrar`, **Esqueci-me da palavra-passe**
+envia um link (válido uma hora) para escolher uma nova. Quem já tem sessão muda
+a palavra-passe no link **Palavra-passe** do menu.
 - O envio de emails incluído no plano gratuito só permite poucos emails por
   hora. Chega para alguns responsáveis; para muitos, configure um SMTP próprio
   em *Authentication > Emails*.
@@ -245,6 +256,50 @@ ordem, os ficheiros:
 5. Cada `git push` publica uma nova versão. O ficheiro `public/_redirects`
    garante que links diretos (ex.: `/c/.../jogos`) funcionam.
 
+## Cópias de segurança
+
+O plano gratuito do Supabase **não faz cópias de segurança**. Há duas formas de
+as ter:
+
+**1. Automática, todas as semanas (toda a base de dados).** O workflow
+`.github/workflows/copia-de-seguranca.yml` corre às segundas-feiras de
+madrugada e guarda a cópia durante 90 dias em *GitHub > Actions > Cópia de
+segurança > (execução) > Artifacts*. Configuração, uma vez:
+
+1. No Supabase, **Connect** (no topo do projeto) > **Session pooler** > copie
+   o URI e substitua `[YOUR-PASSWORD]` pela palavra-passe da base de dados
+   (*Project Settings > Database*, onde também a pode redefinir).
+2. No GitHub, *Settings > Secrets and variables > Actions*, crie:
+   - `SUPABASE_DB_URL`: o URI do passo anterior;
+   - `BACKUP_PASSPHRASE`: uma palavra-passe forte para cifrar as cópias.
+     **Guarde-a fora do GitHub**: sem ela, as cópias não abrem.
+3. Em *Actions > Cópia de segurança > Run workflow*, faça a primeira cópia
+   para confirmar que funciona.
+
+A cópia vai sempre **cifrada** (AES-256), porque tem dados pessoais dos
+jogadores e os artefactos de um repositório público podem ser descarregados por
+qualquer pessoa. Não inclui as fotos e os emblemas (ficam no armazenamento de
+ficheiros do Supabase).
+
+Para restaurar (num projeto Supabase novo ou no mesmo):
+
+```bash
+gpg -d liga-AAAA-MM-DD.tar.gz.gpg | tar -xz      # pede a BACKUP_PASSPHRASE
+psql --single-transaction --variable ON_ERROR_STOP=1 \
+  --file copia/roles.sql --file copia/schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file copia/data.sql \
+  --dbname "URI-DO-PROJETO-DE-DESTINO"
+```
+
+(É o procedimento oficial do Supabase: *Backup and restore using the CLI*.)
+
+**2. Manual, por competição.** No backoffice, separador **Configuração** >
+**Exportar dados**: **Descarregar tudo (JSON)** guarda a competição inteira
+(equipas, jogadores, jogos, golos, cartões, fichas e sanções); **Resultados
+para o Excel (CSV)** dá uma tabela com todos os jogos. Os dados pessoais só vão
+se marcar a opção.
+
 ## Evitar a pausa do Supabase gratuito
 
 O workflow `.github/workflows/manter-supabase-ativo.yml` faz uma consulta a
@@ -287,6 +342,7 @@ src/lib/suspensoes.ts            suspensões por cartões
 src/lib/formatos.ts              grupos, quadro de eliminatórias e rondas seguintes
 src/lib/partilha.ts              imagens e texto para partilhar
 src/lib/aoVivo.ts                modo jogo: relógio, marcador e expulsões
+src/lib/exportar.ts              exportar para JSON e CSV (Excel)
 src/lib/fichas.ts                fichas de jogo: copiar a anterior, jogos disputados
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores

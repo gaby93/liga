@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { formatarData } from '../lib/datas';
-import { rotuloAoVivo } from '../lib/aoVivo';
+import { nomeParte, rotuloAoVivo } from '../lib/aoVivo';
 import { blocosDeJogos } from '../lib/formatos';
 import type { Equipa, Jogo } from '../lib/types';
 import { useAgora } from '../lib/useAgora';
@@ -16,6 +16,9 @@ function PlacarAoVivo({ jogo }: { jogo: Jogo }) {
         <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-vermelho" />
         Ao vivo · {rotuloAoVivo(jogo, agora)}
       </span>
+      {jogo.periodo !== 'intervalo' && nomeParte(jogo) && (
+        <span className="mt-0.5 text-[10px] font-semibold text-vermelho/80">{nomeParte(jogo)}</span>
+      )}
     </span>
   );
 }

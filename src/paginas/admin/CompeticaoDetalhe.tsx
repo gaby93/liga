@@ -7,6 +7,7 @@ import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
 import { TabelaMelhores } from '../../componentes/TabelaMelhores';
 import { Aviso, Botao, Campo, Carregando, Entrada, Seccao, Seletor } from '../../componentes/ui';
 import { atribuirDatas } from '../../lib/calendario';
+import { descarregar, linhasResultados, nomeFicheiro, paraCsv } from '../../lib/exportar';
 import {
   nomeEliminatoria, nomesGrupos, planearCalendario, planearFaseFinal, planearProximaRonda, regrasDaCompeticao, sortearGrupos,
   type JogoPlaneado,
@@ -95,7 +96,7 @@ export default function CompeticaoDetalhe() {
 
       {atual === 'classificacao' && c.formato === 'liga' && (
         <Seccao titulo="Classificação">
-          <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} />
+          <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} jogos={d.jogos} linkJogo={(j) => `/admin/jogos/${j.id}/campo`} />
         </Seccao>
       )}
       {atual === 'classificacao' && c.formato === 'grupos' && (
@@ -107,7 +108,8 @@ export default function CompeticaoDetalhe() {
               {d.grupos.map((g) => (
                 <div key={g.grupo}>
                   <h3 className="mb-1 font-display text-xl font-semibold">Grupo {g.grupo}</h3>
-                  <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} apurados={c.apurados_por_grupo} />
+                  <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} apurados={c.apurados_por_grupo}
+                    jogos={d.jogos} linkJogo={(j) => `/admin/jogos/${j.id}/campo`} />
                 </div>
               ))}
             </div>
@@ -139,6 +141,7 @@ export default function CompeticaoDetalhe() {
             <Criterios competicao={c} executar={executar} />
           </div>
           <Participantes d={d} todasEquipas={todasEquipas} executar={executar} />
+          <Exportar d={d} />
         </>
       )}
     </>
@@ -146,6 +149,73 @@ export default function CompeticaoDetalhe() {
 }
 
 type Separador = 'jogos' | 'classificacao' | 'fase-final' | 'partilhar' | 'disciplina' | 'configuracao';
+
+/** Descarregar os dados da competição: tudo (JSON) ou os resultados para o Excel (CSV). */
+function Exportar({ d }: { d: Dados }) {
+  const c = d.competicao!;
+  const [pessoais, setPessoais] = useState(false);
+  const [aviso, setAviso] = useState<{ tipo: 'erro' | 'info'; texto: string } | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const base = `${nomeFicheiro(`${c.nome} ${c.epoca ?? ''}`)}-${new Date().toISOString().slice(0, 10)}`;
+
+  const tudo = async () => {
+    setAviso(null);
+    setOcupado(true);
+    try {
+      const jogadores = [...d.jogadores.values()];
+      let privado: unknown[] = [];
+      let responsaveis: unknown[] = [];
+      if (pessoais) {
+        const ids = jogadores.map((j) => j.id);
+        const [p, r] = await Promise.all([
+          ids.length ? supabase.from('jogadores_privado').select('*').in('jogador_id', ids) : Promise.resolve({ data: [], error: null }),
+          supabase.from('responsaveis').select('*').in('equipa_id', [...d.equipas.keys()]),
+        ]);
+        if (p.error || r.error) throw p.error ?? r.error;
+        privado = p.data ?? [];
+        responsaveis = r.data ?? [];
+      }
+      const dados = {
+        formato: 'liga-recreativa', versao: 1, exportado_em: new Date().toISOString(),
+        competicao: c, participantes: d.participantes, equipas: [...d.equipas.values()], jogadores,
+        jogos: d.jogos, eventos: d.eventos, convocatorias: d.convocatorias, sancoes: d.sancoes,
+        ...(pessoais ? { jogadores_privado: privado, responsaveis } : {}),
+      };
+      descarregar(`${base}.json`, JSON.stringify(dados, null, 2), 'application/json');
+      setAviso({ tipo: 'info', texto: `Descarregado: ${d.jogos.length} jogos, ${jogadores.length} jogadores${pessoais ? ', com dados pessoais' : ''}.` });
+    } catch (e) {
+      setAviso({ tipo: 'erro', texto: mensagemErro(e) });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const resultados = () => {
+    descarregar(`${base}-resultados.csv`, paraCsv(linhasResultados(d.jogos, d.equipas)), 'text/csv;charset=utf-8');
+    setAviso({ tipo: 'info', texto: `Descarregado: ${d.jogos.length} jogos.` });
+  };
+
+  return (
+    <Seccao titulo="Exportar dados">
+      <p className="mb-3 text-sm text-tinta/70">
+        Uma cópia desta competição no seu computador. A cópia de segurança completa (todas as competições) é feita
+        todas as semanas no GitHub; veja o README.
+      </p>
+      {aviso && <div className="mb-3"><Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso></div>}
+      <label className="mb-3 flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-relva" checked={pessoais} onChange={(e) => setPessoais(e.target.checked)} />
+        <span>
+          Incluir dados pessoais (BI, contactos, datas de nascimento e emails dos responsáveis).
+          <span className="block text-xs text-tinta/60">Guarde o ficheiro num sítio seguro e não o partilhe.</span>
+        </span>
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Botao disabled={ocupado} onClick={tudo}>{ocupado ? 'A preparar…' : 'Descarregar tudo (JSON)'}</Botao>
+        <Botao variante="secundario" onClick={resultados} disabled={!d.jogos.length}>Resultados para o Excel (CSV)</Botao>
+      </div>
+    </Seccao>
+  );
+}
 
 function Participantes({ d, todasEquipas, executar }: { d: Dados; todasEquipas: Equipa[]; executar: Executar }) {
   const c = d.competicao!;

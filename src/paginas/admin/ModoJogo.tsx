@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Aviso, Botao, Carregando, Emblema, Entrada } from '../../componentes/ui';
 import {
-  ROTULO_ACAO, aplicarAcao, expulsos, minutoAtual, placarDosEventos, proximaAcao, rotuloAoVivo, type Acao,
+  ROTULO_ACAO, aplicarAcao, expulsos, minutoAtual, minutoEParte, placarDosEventos, proximaAcao, type Acao,
 } from '../../lib/aoVivo';
 import { nomeFase, precisaPenaltis } from '../../lib/formatos';
 import { mensagemErro, supabase } from '../../lib/supabase';
@@ -229,7 +229,7 @@ export default function ModoJogo() {
         <div className="mt-3 flex justify-center">
           <span className={`rounded-full px-3 py-1 text-sm font-semibold ${aDecorrer && jogo.periodo !== 'intervalo' ? 'bg-vermelho' : 'bg-white/15'}`}>
             {aDecorrer && jogo.periodo !== 'intervalo' && <span className="mr-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-white" />}
-            {rotuloAoVivo(jogo, agora)}
+            {minutoEParte(jogo, agora)}
             {jogo.penaltis_casa != null && jogo.estado === 'terminado' && ` · penáltis ${jogo.penaltis_casa}–${jogo.penaltis_fora}`}
           </span>
         </div>

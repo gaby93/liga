@@ -1,0 +1,58 @@
+# Cópia de segurança semanal da base de dados. O plano gratuito do Supabase não faz cópias.
+#
+# Secrets no repositório (GitHub > Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL    Supabase > Connect > "Session pooler" > URI, com a palavra-passe da base de dados.
+#                      (Use o "Session pooler": os servidores do GitHub não chegam à ligação direta.)
+#   BACKUP_PASSPHRASE  Palavra-passe para cifrar a cópia. Guarde-a num sítio seguro: sem ela a cópia não abre.
+#
+# A cópia tem dados pessoais (BI, contactos). Vai sempre cifrada, porque os artefactos de um
+# repositório público podem ser descarregados por qualquer pessoa. Nunca é guardada no git.
+# Como restaurar: ver "Cópias de segurança" no README.
+name: Cópia de segurança
+on:
+  schedule:
+    - cron: '0 3 * * 1'   # segundas-feiras, 03:00 UTC (05:00 em Maputo)
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Exportar a base de dados
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_DB_URL" || { echo "::error::Falta o secret SUPABASE_DB_URL"; exit 1; }
+          mkdir copia
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f copia/data.sql --use-copy --data-only
+          ls -la copia
+
+      - name: Comprimir e cifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$BACKUP_PASSPHRASE" || { echo "::error::Falta o secret BACKUP_PASSPHRASE"; exit 1; }
+          nome="liga-$(date -u +%Y-%m-%d)"
+          tar -czf "$nome.tar.gz" copia
+          # A palavra-passe entra pela entrada padrão, não pela linha de comando
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "$nome.tar.gz.gpg" "$nome.tar.gz"
+          rm -rf copia "$nome.tar.gz"
+          echo "NOME=$nome" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NOME }}
+          path: ${{ env.NOME }}.tar.gz.gpg
+          retention-days: 90
+          if-no-files-found: error

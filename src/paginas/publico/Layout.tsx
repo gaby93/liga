@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
+import { CartaoAoVivo } from '../../componentes/AoVivo';
 import { Aviso } from '../../componentes/ui';
+import { nomeFase } from '../../lib/formatos';
 import type { Formato } from '../../lib/types';
 import { useDadosCompeticao } from '../../lib/useDadosCompeticao';
 import { useFavoritos } from '../../lib/favoritos';
@@ -12,9 +14,11 @@ const SEPARADORES: Record<Formato, { to: string; rotulo: string; end: boolean }[
 };
 
 export default function PublicoLayout() {
-  const { id } = useParams();
+  const { id, jogoId } = useParams();
   const dados = useDadosCompeticao(id);
   const c = dados.competicao;
+  // Jogos a decorrer (menos o que já está aberto na página do jogo)
+  const aoVivo = dados.jogos.filter((j) => j.estado === 'em_curso' && j.id !== jogoId);
   const { eFavorito, alternar } = useFavoritos();
   const separadores = [
     ...SEPARADORES[c?.formato ?? 'liga'],
@@ -53,6 +57,14 @@ export default function PublicoLayout() {
         </nav>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-6">
+        {aoVivo.length > 0 && (
+          <section aria-label="Jogos ao vivo" className="mb-6 grid gap-2 sm:grid-cols-2">
+            {aoVivo.map((j) => (
+              <CartaoAoVivo key={j.id} jogo={j} casa={dados.equipas.get(j.casa_id)} fora={dados.equipas.get(j.fora_id)}
+                para={`/c/${id}/jogos/${j.id}`} contexto={nomeFase(j)} />
+            ))}
+          </section>
+        )}
         {dados.erro ? <Aviso>Não foi possível carregar a competição: {dados.erro}</Aviso> : <Outlet context={dados} />}
       </main>
     </div>

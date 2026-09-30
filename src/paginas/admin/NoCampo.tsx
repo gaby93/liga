@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Aviso, Carregando, Emblema, Seccao } from '../../componentes/ui';
-import { rotuloAoVivo } from '../../lib/aoVivo';
+import { nomeParte, rotuloAoVivo } from '../../lib/aoVivo';
 import { nomeFase } from '../../lib/formatos';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Equipa, Jogo } from '../../lib/types';
@@ -59,7 +59,12 @@ export default function NoCampo() {
                 <Link to={`/admin/jogos/${j.id}/campo`} className="flex items-center gap-3 py-3 hover:bg-giz">
                   <div className="flex w-14 shrink-0 flex-col items-center text-xs">
                     {aoVivo
-                      ? <span className="rounded-full bg-vermelho px-2 py-0.5 font-semibold text-white">{rotuloAoVivo(j, agora)}</span>
+                      ? (
+                        <>
+                          <span className="rounded-full bg-vermelho px-2 py-0.5 font-semibold text-white">{rotuloAoVivo(j, agora)}</span>
+                          {j.periodo !== 'intervalo' && <span className="mt-0.5 text-[10px] text-vermelho">{nomeParte(j)}</span>}
+                        </>
+                      )
                       : <span className="font-semibold">{j.data_hora ? new Date(j.data_hora).toLocaleTimeString('pt-MZ', { hour: '2-digit', minute: '2-digit' }) : ''}</span>}
                   </div>
                   <div className="min-w-0 flex-1">

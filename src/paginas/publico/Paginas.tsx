@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { EtiquetaAoVivo } from '../../componentes/AoVivo';
 import { ListaJogos, Placar } from '../../componentes/ListaJogos';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
@@ -7,7 +8,7 @@ import { TabelaMelhores } from '../../componentes/TabelaMelhores';
 import { Carregando, Emblema } from '../../componentes/ui';
 import { resultadoEfetivo } from '../../lib/classificacao';
 import { formatarData } from '../../lib/datas';
-import { nomeFase } from '../../lib/formatos';
+import { decidirEliminatoria, jogosDaChave, nomeFase } from '../../lib/formatos';
 import type { Jogo, TipoEvento } from '../../lib/types';
 import type { DadosCompeticao } from '../../lib/useDadosCompeticao';
 
@@ -19,6 +20,8 @@ function useLinks() {
   return {
     equipa: (equipaId: string) => `/c/${id}/equipas/${equipaId}`,
     jogador: (jogadorId: string) => `/c/${id}/jogadores/${jogadorId}`,
+    jogo: (j: { id: string }) => `/c/${id}/jogos/${j.id}`,
+    jogos: `/c/${id}/jogos`,
   };
 }
 
@@ -35,7 +38,7 @@ export function PaginaTabela() {
           <section key={g.grupo}>
             <h2 className="mb-2 font-display text-3xl font-semibold">Grupo {g.grupo}</h2>
             <TabelaClassificacao linhas={g.linhas} equipas={d.equipas} linkEquipa={links.equipa}
-              apurados={d.competicao!.apurados_por_grupo} />
+              apurados={d.competicao!.apurados_por_grupo} jogos={d.jogos} linkJogo={links.jogo} />
           </section>
         ))}
         <p className="text-xs text-tinta/60">
@@ -46,7 +49,7 @@ export function PaginaTabela() {
       </div>
     );
   }
-  return <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} linkEquipa={links.equipa} />;
+  return <TabelaClassificacao linhas={d.tabela} equipas={d.equipas} linkEquipa={links.equipa} jogos={d.jogos} linkJogo={links.jogo} />;
 }
 
 export function PaginaFaseFinal() {
@@ -68,7 +71,7 @@ export function PaginaJogos() {
   const d = useDados();
   const links = useLinks();
   if (d.carregando) return <Carregando />;
-  return <ListaJogos jogos={d.jogos} equipas={d.equipas} linkEquipa={links.equipa} />;
+  return <ListaJogos jogos={d.jogos} equipas={d.equipas} linkPara={links.jogo} />;
 }
 
 export function PaginaMarcadores() {
@@ -182,7 +185,7 @@ export function PaginaEquipa() {
       {proximo && (
         <section>
           <h3 className="mb-2 font-display text-2xl font-semibold">{proximo.estado === 'em_curso' ? 'A jogar agora' : 'Próximo jogo'}</h3>
-          <ListaJogos jogos={[proximo]} equipas={d.equipas} linkEquipa={links.equipa} />
+          <ListaJogos jogos={[proximo]} equipas={d.equipas} linkPara={links.jogo} />
         </section>
       )}
 
@@ -220,7 +223,7 @@ export function PaginaEquipa() {
 
       <section>
         <h3 className="mb-2 font-display text-2xl font-semibold">Jogos</h3>
-        <ListaJogos jogos={jogos} equipas={d.equipas} linkEquipa={links.equipa} vazio="Ainda sem jogos marcados." />
+        <ListaJogos jogos={jogos} equipas={d.equipas} linkPara={links.jogo} vazio="Ainda sem jogos marcados." />
       </section>
     </div>
   );
@@ -316,7 +319,9 @@ function LinhaJogoJogador({ jogo, d, eventos, links }: {
           <Placar jogo={jogo} />
           <Link to={links.equipa(jogo.fora_id)} className="hover:text-relva hover:underline">{fora?.nome}</Link>
         </div>
-        <div className="text-xs text-tinta/60">{[fase, formatarData(jogo.data_hora)].filter(Boolean).join(', ')}</div>
+        <Link to={links.jogo(jogo)} className="text-xs text-tinta/60 hover:text-relva hover:underline">
+          {[fase, formatarData(jogo.data_hora)].filter(Boolean).join(', ')} · ver jogo
+        </Link>
       </div>
       <ul className="flex flex-wrap gap-3 text-sm">
         {ordenados.map((e) => (
@@ -328,6 +333,163 @@ function LinhaJogoJogador({ jogo, d, eventos, links }: {
         ))}
       </ul>
     </li>
+  );
+}
+
+// ---------- Jogo ----------
+
+/** Página de um jogo: marcador (ao vivo durante o jogo), golos e cartões, e convocados. */
+export function PaginaJogo() {
+  const d = useDados();
+  const links = useLinks();
+  const { jogoId } = useParams();
+  if (d.carregando) return <Carregando />;
+  const jogo = d.jogos.find((j) => j.id === jogoId);
+  if (!jogo) return <NaoEncontrado o="Este jogo não existe nesta competição." />;
+
+  const casa = d.equipas.get(jogo.casa_id);
+  const fora = d.equipas.get(jogo.fora_id);
+  const aoVivo = jogo.estado === 'em_curso';
+  const temResultado = aoVivo || jogo.estado === 'terminado';
+  const wo = jogo.estado === 'wo_casa' || jogo.estado === 'wo_fora';
+  const eventos = d.eventos.filter((e) => e.jogo_id === jogo.id)
+    .sort((a, b) => (a.minuto ?? 999) - (b.minuto ?? 999));
+  const convocados = d.convocatorias.filter((c) => c.jogo_id === jogo.id);
+  const agregado = jogo.mao === 2 && jogo.eliminatoria != null && jogo.chave != null
+    ? decidirEliminatoria(jogosDaChave(d.jogos, jogo.eliminatoria, jogo.chave), d.competicao?.golos_wo ?? 3).agregado
+    : null;
+
+  const nomeJogador = (id: string | null) => {
+    const j = id ? d.jogadores.get(id) : undefined;
+    if (!j) return <span className="text-tinta/60">{id ? 'Jogador' : 'Jogador não identificado'}</span>;
+    return <Link to={links.jogador(j.id)} className="hover:text-relva hover:underline">{j.nome}</Link>;
+  };
+
+  const equipaCabecalho = (id: string) => {
+    const e = d.equipas.get(id);
+    return (
+      <Link to={links.equipa(id)} className="flex min-w-0 flex-col items-center gap-2 text-center hover:underline">
+        <Emblema url={e?.emblema_url} nome={e?.nome ?? '?'} tamanho={56} />
+        <span className="w-full truncate font-display text-lg font-semibold sm:text-xl">{e?.nome}</span>
+      </Link>
+    );
+  };
+
+  const plantelNaFicha = (equipaId: string) => convocados
+    .filter((c) => c.equipa_id === equipaId)
+    .map((c) => d.jogadores.get(c.jogador_id))
+    .filter((j): j is NonNullable<typeof j> => Boolean(j))
+    .sort((a, b) => (a.numero ?? 999) - (b.numero ?? 999) || a.nome.localeCompare(b.nome, 'pt'));
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Link to={links.jogos} className="-mb-2 text-sm font-semibold text-relva hover:underline">
+        ‹ Todos os jogos
+      </Link>
+
+      {/* Marcador */}
+      <section className={`rounded-xl px-3 py-5 ${aoVivo ? 'bg-tinta text-white' : 'border border-linha bg-white'}`}>
+        <p className={`mb-3 text-center text-xs ${aoVivo ? 'text-white/70' : 'text-tinta/60'}`}>
+          {[nomeFase(jogo), jogo.grupo && `Grupo ${jogo.grupo}`].filter(Boolean).join(' · ')}
+        </p>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          {equipaCabecalho(jogo.casa_id)}
+          <div className="flex flex-col items-center gap-2">
+            {temResultado ? (
+              <span className="font-display text-6xl font-bold tabular-nums leading-none">
+                {jogo.golos_casa ?? 0}<span className="px-1 opacity-40">–</span>{jogo.golos_fora ?? 0}
+              </span>
+            ) : (
+              <span className="font-display text-3xl font-semibold opacity-60">{wo ? 'W.O.' : 'vs'}</span>
+            )}
+            {aoVivo && <EtiquetaAoVivo jogo={jogo} grande />}
+            {jogo.estado === 'terminado' && <span className="text-xs font-semibold uppercase tracking-wide text-tinta/60">Terminado</span>}
+            {jogo.estado === 'adiado' && <span className="text-sm font-semibold text-vermelho">Adiado</span>}
+          </div>
+          {equipaCabecalho(jogo.fora_id)}
+        </div>
+        {(jogo.penaltis_casa != null && jogo.penaltis_fora != null && jogo.estado === 'terminado') && (
+          <p className="mt-3 text-center text-sm">Penáltis: {jogo.penaltis_casa}–{jogo.penaltis_fora}</p>
+        )}
+        {agregado && (
+          <p className={`mt-2 text-center text-sm ${aoVivo ? 'text-white/80' : 'text-tinta/70'}`}>
+            Total das duas mãos: {agregado.get(jogo.casa_id)}–{agregado.get(jogo.fora_id)}
+          </p>
+        )}
+        {wo && (
+          <p className="mt-3 text-center text-sm text-tinta/70">
+            {(jogo.estado === 'wo_casa' ? casa : fora)?.nome} não compareceu.
+          </p>
+        )}
+        {(jogo.estado === 'agendado' || jogo.estado === 'adiado') && (
+          <p className="mt-3 text-center text-sm text-tinta/70">
+            {[formatarData(jogo.data_hora) ?? 'Data por marcar', jogo.campo].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </section>
+
+      {/* Golos e cartões */}
+      {(eventos.length > 0 || aoVivo) && (
+        <section>
+          <h2 className="mb-2 font-display text-2xl font-semibold">Golos e cartões</h2>
+          {eventos.length === 0 ? (
+            <p className="text-sm text-tinta/70">Ainda sem golos nem cartões. Esta página atualiza-se sozinha.</p>
+          ) : (
+            <ul className="divide-y divide-linha rounded-lg border border-linha bg-white">
+              {eventos.map((e) => {
+                const daCasa = e.equipa_id === jogo.casa_id;
+                const conteudo = (
+                  <span className={`flex items-center gap-2 ${daCasa ? 'justify-end text-right' : ''}`}>
+                    {!daCasa && SIMBOLO[e.tipo].marca}
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{nomeJogador(e.jogador_id)}</span>
+                      {e.tipo === 'autogolo' && <span className="block text-xs text-tinta/60">Autogolo</span>}
+                    </span>
+                    {daCasa && SIMBOLO[e.tipo].marca}
+                  </span>
+                );
+                return (
+                  <li key={e.id} className="grid grid-cols-[1fr_3rem_1fr] items-center gap-2 px-3 py-2.5 text-sm">
+                    <span className="min-w-0">{daCasa && conteudo}</span>
+                    <span className="text-center tabular-nums text-tinta/60">
+                      {e.minuto != null ? `${e.minuto}'` : ''}
+                      <span className="sr-only"> {SIMBOLO[e.tipo].rotulo}</span>
+                    </span>
+                    <span className="min-w-0">{!daCasa && conteudo}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {/* Convocados */}
+      {convocados.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-display text-2xl font-semibold">Convocados</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[jogo.casa_id, jogo.fora_id].map((id) => (
+              <div key={id}>
+                <h3 className="mb-1 font-semibold">{d.equipas.get(id)?.nome}</h3>
+                {plantelNaFicha(id).length === 0 ? (
+                  <p className="text-sm text-tinta/60">Ficha por preencher.</p>
+                ) : (
+                  <ul className="divide-y divide-linha rounded-lg border border-linha bg-white text-sm">
+                    {plantelNaFicha(id).map((j) => (
+                      <li key={j.id} className="flex items-center gap-3 px-3 py-2">
+                        <span className="w-6 text-right font-display text-base font-semibold text-relva">{j.numero ?? ''}</span>
+                        <Link to={links.jogador(j.id)} className="flex-1 truncate hover:text-relva hover:underline">{j.nome}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 

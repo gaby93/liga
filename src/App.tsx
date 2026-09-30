@@ -10,11 +10,12 @@ import ModoJogo from './paginas/admin/ModoJogo';
 import NoCampo from './paginas/admin/NoCampo';
 import Jogadores from './paginas/admin/Jogadores';
 import Login from './paginas/admin/Login';
+import NovaPalavraPasse from './paginas/admin/NovaPalavraPasse';
 import Inicio from './paginas/publico/Inicio';
 import PublicoLayout from './paginas/publico/Layout';
 import AreaEquipa, { EscolherEquipa, FichaJogoEquipa, PainelEquipa } from './paginas/equipa/Area';
 import {
-  PaginaEquipa, PaginaFaseFinal, PaginaJogador, PaginaJogos, PaginaMarcadores, PaginaTabela,
+  PaginaEquipa, PaginaFaseFinal, PaginaJogador, PaginaJogo, PaginaJogos, PaginaMarcadores, PaginaTabela,
 } from './paginas/publico/Paginas';
 
 export default function App() {
@@ -33,12 +34,14 @@ export default function App() {
         <Route path="/c/:id" element={<PublicoLayout />}>
           <Route index element={<PaginaTabela />} />
           <Route path="jogos" element={<PaginaJogos />} />
+          <Route path="jogos/:jogoId" element={<PaginaJogo />} />
           <Route path="marcadores" element={<PaginaMarcadores />} />
           <Route path="fase-final" element={<PaginaFaseFinal />} />
           <Route path="equipas/:equipaId" element={<PaginaEquipa />} />
           <Route path="jogadores/:jogadorId" element={<PaginaJogador />} />
         </Route>
         <Route path="/entrar" element={<Login />} />
+        <Route path="/entrar/nova-palavra-passe" element={<NovaPalavraPasse />} />
         <Route path="/admin/login" element={<Navigate to="/entrar" replace />} />
         <Route path="/equipa" element={<AreaEquipa />}>
           <Route index element={<EscolherEquipa />} />

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { aplicarAcao, expulsos, minutoAtual, placarDosEventos, proximaAcao, rotuloAoVivo, type Relogio } from './aoVivo';
+import {
+  aplicarAcao, expulsos, jogosAoVivoPorEquipa, minutoAtual, minutoEParte, nomeParte, placarDosEventos, proximaAcao,
+  resultadoPara, rotuloAoVivo, type Relogio,
+} from './aoVivo';
 
 const T0 = Date.parse('2026-10-04T15:00:00Z');
 const min = (m: number, s = 0) => T0 + m * 60000 + s * 1000;
@@ -43,6 +46,19 @@ describe('modo jogo: relógio', () => {
     expect(passos).toEqual(['comecar', 'intervalo', 'segunda', 'terminar', null]);
   });
 
+  it('diz em que parte vai o jogo', () => {
+    const primeira = aplicarAcao(agendado, 'comecar', T0);
+    expect(nomeParte(primeira)).toBe('1.ª parte');
+    expect(minutoEParte(primeira, min(22, 30))).toBe("23' · 1.ª parte");
+    const intervalo = aplicarAcao(primeira, 'intervalo', min(25));
+    expect(nomeParte(intervalo)).toBe('Intervalo');
+    expect(minutoEParte(intervalo, min(30))).toBe('Intervalo');
+    const segunda = aplicarAcao(intervalo, 'segunda', min(35));
+    expect(minutoEParte(segunda, min(47, 10))).toBe("38' · 2.ª parte");
+    expect(nomeParte(aplicarAcao(segunda, 'terminar', min(60)))).toBeNull();
+    expect(nomeParte(agendado)).toBeNull();
+  });
+
   it('nunca passa do limite de minutos', () => {
     const r = aplicarAcao(agendado, 'comecar', T0);
     expect(minutoAtual(r, min(500))).toBe(130);
@@ -51,6 +67,20 @@ describe('modo jogo: relógio', () => {
   it('um jogo por começar não tem minuto', () => {
     expect(minutoAtual(agendado, T0)).toBeNull();
     expect(rotuloAoVivo(agendado, T0)).toBe('Por começar');
+  });
+});
+
+describe('tabela: quem está a jogar', () => {
+  it('associa cada equipa ao seu jogo a decorrer e mostra o resultado do ponto de vista dela', () => {
+    const jogos = [
+      { id: '1', estado: 'em_curso' as const, casa_id: 'A', fora_id: 'B', golos_casa: 2, golos_fora: 1 },
+      { id: '2', estado: 'agendado' as const, casa_id: 'C', fora_id: 'D', golos_casa: null, golos_fora: null },
+      { id: '3', estado: 'terminado' as const, casa_id: 'A', fora_id: 'C', golos_casa: 0, golos_fora: 0 },
+    ];
+    const m = jogosAoVivoPorEquipa(jogos);
+    expect([...m.keys()].sort()).toEqual(['A', 'B']);
+    expect(resultadoPara(m.get('A')!, 'A')).toEqual([2, 1]);
+    expect(resultadoPara(m.get('B')!, 'B')).toEqual([1, 2]);
   });
 });
 
