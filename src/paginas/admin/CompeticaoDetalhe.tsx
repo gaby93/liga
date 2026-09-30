@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ListaJogos } from '../../componentes/ListaJogos';
+import { PainelConvite } from '../../componentes/Convidar';
 import { PartilharImagens } from '../../componentes/PartilharImagens';
 import { QuadroEliminatorias } from '../../componentes/QuadroEliminatorias';
 import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
@@ -132,7 +133,18 @@ export default function CompeticaoDetalhe() {
 
       {atual === 'fase-final' && <FaseFinal d={d} executar={executar} />}
 
-      {atual === 'partilhar' && <PartilharImagens d={d} />}
+      {atual === 'partilhar' && (
+        <>
+          <PartilharImagens d={d} />
+          <Seccao titulo="Convidar adeptos para a app">
+            <p className="mb-4 text-sm text-tinta/70">
+              Envie o convite aos grupos das equipas ou mostre o QR code no campo. Quem o abrir vê como instalar a app no seu
+              telemóvel e fica logo a seguir esta competição.
+            </p>
+            <div className="mx-auto max-w-sm"><PainelConvite competicaoId={c.id} nome={c.nome} /></div>
+          </Seccao>
+        </>
+      )}
 
       {atual === 'disciplina' && (
         <>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartaoAoVivo } from '../../componentes/AoVivo';
 import { InstalarApp } from '../../componentes/AvisosApp';
+import { BotaoConvidar } from '../../componentes/Convidar';
 import { Carregando, Etiqueta, Marca } from '../../componentes/ui';
 import { organizarCompeticoes, useFavoritos } from '../../lib/favoritos';
 import { supabase } from '../../lib/supabase';
@@ -163,8 +164,9 @@ export default function Inicio() {
           </>
         )}
       </main>
-      <footer className="px-4 pb-6 text-center text-sm text-tinta/60">
-        É responsável de uma equipa? <Link to="/entrar" className="font-semibold text-relva hover:underline">Entrar na área da equipa</Link>
+      <footer className="flex flex-col items-center gap-3 px-4 pb-6 text-center text-sm text-tinta/60">
+        <BotaoConvidar />
+        <p>É responsável de uma equipa? <Link to="/entrar" className="font-semibold text-relva hover:underline">Entrar na área da equipa</Link></p>
       </footer>
     </div>
   );

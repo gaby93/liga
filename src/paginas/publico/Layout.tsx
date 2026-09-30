@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import { CartaoAoVivo } from '../../componentes/AoVivo';
+import { BotaoConvidar } from '../../componentes/Convidar';
 import { SinoCompeticao } from '../../componentes/Notificacoes';
 import { Aviso, Marca } from '../../componentes/ui';
 import { nomeFase } from '../../lib/formatos';
@@ -48,6 +49,7 @@ export default function PublicoLayout() {
             </div>
             {c && (
               <div className="flex items-center">
+                <BotaoConvidar competicaoId={c.id} nome={c.nome} clara />
                 <SinoCompeticao competicaoId={c.id} nome={c.nome} />
                 <EstrelaFavorito ativo={eFavorito(c.id)} nome={c.nome} onClick={() => alternar(c.id)} clara />
               </div>

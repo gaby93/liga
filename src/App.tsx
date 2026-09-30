@@ -13,6 +13,7 @@ import Jogadores from './paginas/admin/Jogadores';
 import Login from './paginas/admin/Login';
 import NovaPalavraPasse from './paginas/admin/NovaPalavraPasse';
 import Inicio from './paginas/publico/Inicio';
+import Instalar from './paginas/publico/Instalar';
 import PublicoLayout from './paginas/publico/Layout';
 import AreaEquipa, { EscolherEquipa, FichaJogoEquipa, PainelEquipa } from './paginas/equipa/Area';
 import {
@@ -32,6 +33,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Inicio />} />
+        <Route path="/instalar" element={<Instalar />} />
         <Route path="/c/:id" element={<PublicoLayout />}>
           <Route index element={<PaginaTabela />} />
           <Route path="jogos" element={<PaginaJogos />} />

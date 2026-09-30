@@ -57,3 +57,9 @@ export function organizarCompeticoes<T extends CompeticaoLista>(lista: T[], pesq
     terminadas: encontradas.filter((c) => !fav.has(c.id) && c.estado === 'terminada'),
   };
 }
+
+/** Junta uma competição aos favoritos (ex.: a do convite com que a pessoa chegou). */
+export function adicionarFavorito(id: string) {
+  const atual = ler();
+  if (!atual.includes(id)) gravar([...atual, id]);
+}

@@ -208,6 +208,25 @@ Depois de instalada:
 O ficheiro `public/_headers` impede que o Cloudflare guarde em cache o service
 worker, para as atualizações chegarem logo.
 
+### Convidar outras pessoas
+
+O botão **Convidar** (ícone de partilhar no topo de cada competição, no rodapé
+da página inicial e no separador **Partilhar** do backoffice) envia o link
+`/instalar?c=<competição>` por WhatsApp, pela partilha do telemóvel ou copiado.
+Também mostra um QR code, para mostrar no campo.
+
+A página `/instalar` reconhece o aparelho de quem a abre e mostra os passos
+certos:
+
+- Android e Chrome/Edge no computador: botão **Instalar a app**.
+- iPhone no Safari, no Chrome/Firefox/Edge, e Samsung Internet: passos próprios.
+- Browser dentro do Facebook, do Instagram, etc.: pede para abrir no
+  Safari/Chrome, onde já dá para instalar.
+- Computador sem instalação: QR code para abrir no telemóvel.
+
+A competição do convite fica logo nos favoritos. Quando a app se abre, segue
+direto para ela.
+
 ## Organizações e administradores
 
 A plataforma pode ter várias ligas (organizações), cada uma com as suas
