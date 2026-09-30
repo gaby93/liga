@@ -306,7 +306,8 @@ ordem, os ficheiros:
 
 1. Suba o código para um repositório GitHub.
 2. Cloudflare > *Workers & Pages > Create > Pages > Connect to Git*.
-3. Build command: `npm run build`. Output directory: `dist`.
+3. Build command: `npm run build`. Output directory: `dist`. A versão do Node
+   (22) vem do ficheiro `.node-version`.
 4. Em *Environment variables*, adicione `VITE_SUPABASE_URL`,
    `VITE_SUPABASE_ANON_KEY` e `VITE_SITE_URL` (o endereço do site, ex.:
    `https://a-sua-liga.pages.dev`, que aparece nas imagens para partilhar).
