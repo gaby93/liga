@@ -34,7 +34,7 @@ export default function Instalar() {
           <div className="pb-8 pt-4">
             <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-white/65">Convite</p>
             <h1 className="font-display text-4xl font-semibold leading-tight tracking-tight">
-              {nome ? <>Acompanhe a {nome} no telemóvel</> : 'Tenha a liga no telemóvel'}
+              {nome ? <>Acompanhe a {nome} no telemóvel</> : 'Tenha a Bola do Bairro no telemóvel'}
             </h1>
             <p className="mt-2 text-white/80">Resultados ao vivo, tabelas, marcadores e avisos de golos. É grátis e ocupa pouco espaço.</p>
           </div>
@@ -45,7 +45,7 @@ export default function Instalar() {
           {instalada ? (
             <div className="flex flex-col gap-2">
               <h2 className="text-lg font-semibold">App instalada ✓</h2>
-              <p className="text-sm text-tinta/70">Abra-a pelo ícone <strong>Liga</strong> no ecrã principal.</p>
+              <p className="text-sm text-tinta/70">Abra-a pelo ícone <strong>Bola do Bairro</strong> no ecrã principal.</p>
             </div>
           ) : (
             <Passos plataforma={p} podeInstalar={podeInstalar} instalar={instalar} />
@@ -89,7 +89,7 @@ function Lista({ titulo, children }: { titulo: string; children: ReactNode }) {
   );
 }
 
-const PasseAbrir = <Passo n={4}>Abra a app pelo ícone <strong>Liga</strong> no ecrã principal.</Passo>;
+const PasseAbrir = <Passo n={4}>Abra a app pelo ícone <strong>Bola do Bairro</strong> no ecrã principal.</Passo>;
 
 function CopiarLink() {
   const [feito, setFeito] = useState(false);

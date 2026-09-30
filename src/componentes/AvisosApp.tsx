@@ -72,7 +72,7 @@ export function InstalarApp() {
     <div className="flex items-center gap-3 rounded-lg border border-linha bg-white px-4 py-3 text-sm">
       <img src="/pwa-192.png" alt="" className="h-10 w-10 shrink-0 rounded-lg" />
       <div className="min-w-0 flex-1">
-        <div className="font-semibold">Tenha a liga no telemóvel</div>
+        <div className="font-semibold">Tenha a Bola do Bairro no telemóvel</div>
         <div className="text-tinta/70">Instale a app: abre num toque, avisa dos golos e funciona sem rede.</div>
       </div>
       {podeInstalar ? (

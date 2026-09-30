@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => {
         includeAssets: ['icone.svg', 'apple-touch-icon.png'],
         manifest: {
           id: '/',
-          name: 'Liga recreativa',
-          short_name: 'Liga',
+          name: 'Bola do Bairro',
+          short_name: 'Bola do Bairro',
           description: 'Tabelas, jogos, marcadores e resultados das competições, em tempo real.',
           lang: 'pt',
           start_url: '/',

@@ -88,7 +88,7 @@ export function Carregando() {
 }
 
 /** Marca da app: ícone + nome. `clara` para usar sobre a faixa verde. */
-export function Marca({ texto = 'Liga', clara = false }: { texto?: string; clara?: boolean }) {
+export function Marca({ texto = 'Bola do Bairro', clara = false }: { texto?: string; clara?: boolean }) {
   return (
     <span className={`flex items-center gap-2 font-semibold tracking-tight ${clara ? 'text-white' : ''}`}>
       <img src="/icone.svg" alt="" className={`h-7 w-7 rounded-lg ${clara ? 'ring-1 ring-white/35' : ''}`} />

@@ -1,4 +1,4 @@
-# Liga recreativa
+# Bola do Bairro
 
 Gestão de campeonatos de futebol recreativo: um backoffice para administrar
 equipas, jogadores, jogos, regras e desempates, e um portal público onde

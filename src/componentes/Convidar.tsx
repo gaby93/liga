@@ -42,7 +42,7 @@ export function PainelConvite({ competicaoId, nome }: { competicaoId?: string; n
   const podePartilhar = typeof navigator !== 'undefined' && 'share' in navigator;
 
   const partilhar = async () => {
-    try { await navigator.share({ title: nome ?? 'Liga recreativa', text: texto }); } catch { /* cancelado */ }
+    try { await navigator.share({ title: nome ?? 'Bola do Bairro', text: texto }); } catch { /* cancelado */ }
   };
   const copiar = async () => {
     try {

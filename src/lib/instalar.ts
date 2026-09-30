@@ -45,7 +45,7 @@ export function linkConvite(base: string, competicaoId?: string) {
 export function textoConvite(link: string, competicao?: string) {
   return competicao
     ? `Acompanhe a ${competicao} no telemóvel: resultados ao vivo, tabela e avisos de golos. Instale a app: ${link}`
-    : `Acompanhe as nossas competições no telemóvel: resultados ao vivo, tabelas e avisos de golos. Instale a app: ${link}`;
+    : `Acompanhe as competições da Bola do Bairro no telemóvel: resultados ao vivo, tabelas e avisos de golos. Instale a app: ${link}`;
 }
 
 // O browser só oferece o pedido de instalação uma vez, e às vezes antes de a página

@@ -6,10 +6,10 @@ self.addEventListener('push', (evento) => {
   try {
     m = evento.data ? evento.data.json() : {};
   } catch {
-    m = { titulo: 'Liga', corpo: evento.data ? evento.data.text() : '' };
+    m = { titulo: 'Bola do Bairro', corpo: evento.data ? evento.data.text() : '' };
   }
   evento.waitUntil(
-    self.registration.showNotification(m.titulo || 'Liga', {
+    self.registration.showNotification(m.titulo || 'Bola do Bairro', {
       body: m.corpo || '',
       icon: '/pwa-192.png',
       badge: '/badge-96.png',
