@@ -85,9 +85,14 @@ create table public.jogos (
   campo         text,
   golos_casa    int check (golos_casa >= 0),
   golos_fora    int check (golos_fora >= 0),
-  -- wo_casa: a equipa da casa faltou; wo_fora: a equipa de fora faltou
+  -- em_curso: a decorrer (modo jogo); wo_casa: a equipa da casa faltou; wo_fora: a equipa de fora faltou
   estado        text not null default 'agendado'
-                check (estado in ('agendado', 'terminado', 'wo_casa', 'wo_fora', 'adiado')),
+                constraint jogos_estado_check
+                check (estado in ('agendado', 'em_curso', 'terminado', 'wo_casa', 'wo_fora', 'adiado')),
+  -- Modo jogo: parte em curso e relógio. O minuto é relogio_base + o tempo desde relogio_inicio.
+  periodo        text check (periodo in ('1p', 'intervalo', '2p')),
+  relogio_inicio timestamptz,
+  relogio_base   int not null default 0 check (relogio_base >= 0),
   grupo         text,  -- jogo da fase de grupos
   -- Jogo a eliminar: equipas em prova na ronda (2 = final, 4 = meias…) e posição no quadro
   eliminatoria  int check (eliminatoria >= 2),

@@ -39,7 +39,7 @@ export function QuadroEliminatorias({ quadro, jogos, equipas, golosWO, linkJogo,
   /** Golos de uma equipa num jogo, como aparecem no quadro. */
   const golos = (j: Jogo, equipaId: string) => {
     if (j.estado === 'wo_casa' || j.estado === 'wo_fora') return 'W.O.';
-    if (j.estado !== 'terminado' || j.golos_casa == null) return '';
+    if ((j.estado !== 'terminado' && j.estado !== 'em_curso') || j.golos_casa == null) return '';
     return String(j.casa_id === equipaId ? j.golos_casa : j.golos_fora);
   };
 

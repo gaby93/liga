@@ -5,7 +5,7 @@ import type { Equipa, EstadoJogo, Jogo } from './types';
 const jogo = (id: string, jornada: number, estado: EstadoJogo, extra: Partial<Jogo> = {}): Jogo => ({
   id, competicao_id: 'c', jornada, casa_id: 'A', fora_id: 'B', data_hora: null, campo: null,
   golos_casa: null, golos_fora: null, estado, grupo: null, eliminatoria: null, chave: null,
-  penaltis_casa: null, penaltis_fora: null, mao: null, ...extra,
+  penaltis_casa: null, penaltis_fora: null, mao: null, periodo: null, relogio_inicio: null, relogio_base: 0, ...extra,
 });
 const equipas = new Map<string, Equipa>([
   ['A', { id: 'A', nome: 'Águias', emblema_url: null, responsavel: null, contacto: null }],

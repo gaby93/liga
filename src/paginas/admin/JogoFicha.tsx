@@ -96,10 +96,18 @@ export default function JogoFicha() {
 
   return (
     <>
-      <Link to={`/admin/competicoes/${jogo.competicao_id}?separador=${jogo.eliminatoria != null ? 'fase-final' : 'jogos'}`}
-        className="text-sm font-semibold text-relva hover:underline">
-        Voltar à competição
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link to={`/admin/competicoes/${jogo.competicao_id}?separador=${jogo.eliminatoria != null ? 'fase-final' : 'jogos'}`}
+          className="text-sm font-semibold text-relva hover:underline">
+          Voltar à competição
+        </Link>
+        {jogo.estado !== 'terminado' && jogo.estado !== 'wo_casa' && jogo.estado !== 'wo_fora' && (
+          <Link to={`/admin/jogos/${jogo.id}/campo`}
+            className="rounded-md bg-relva px-4 py-2 text-sm font-semibold text-white hover:bg-relva-escura">
+            {jogo.estado === 'em_curso' ? 'Continuar no modo jogo' : 'Modo jogo (lançar no campo)'}
+          </Link>
+        )}
+      </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-lg bg-tinta px-4 py-6 text-white">
         <div className="flex flex-col items-center gap-2 text-center">

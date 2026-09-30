@@ -221,7 +221,7 @@ function FaseFinal({ d, executar }: { d: Dados; executar: Executar }) {
   const [aviso, setAviso] = useState<string | null>(null);
   const eliminatorias = d.jogos.filter((j) => j.eliminatoria != null);
   const deGrupos = d.jogos.filter((j) => j.eliminatoria == null);
-  const porJogar = deGrupos.filter((j) => j.estado === 'agendado' || j.estado === 'adiado').length;
+  const porJogar = deGrupos.filter((j) => j.estado === 'agendado' || j.estado === 'adiado' || j.estado === 'em_curso').length;
   const regras = regrasDaCompeticao(c);
   const proxima = planearProximaRonda(d.jogos, d.quadro, regras);
 
@@ -485,8 +485,9 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
       setAviso(`${alterar.length} ${alterar.length === 1 ? 'jogo ficou' : 'jogos ficaram'} com data marcada.`);
   });
 
-  const porFazer = d.jogos.filter((j) => j.estado === 'agendado' || j.estado === 'adiado');
-  const jogados = d.jogos.filter((j) => j.estado !== 'agendado' && j.estado !== 'adiado');
+  const porTerminar = (j: { estado: string }) => j.estado === 'agendado' || j.estado === 'adiado' || j.estado === 'em_curso';
+  const porFazer = d.jogos.filter(porTerminar);
+  const jogados = d.jogos.filter((j) => !porTerminar(j));
   const visiveis = { porJogar: porFazer, jogados: [...jogados].reverse(), todos: d.jogos }[filtro ?? (porFazer.length ? 'porJogar' : 'todos')];
 
   return (

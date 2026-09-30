@@ -99,6 +99,31 @@ As regras aplicam-se às rondas que ainda vão ser geradas.
   nos marcadores, cartões, suspensão em curso e os jogos disputados, com os
   golos e cartões de cada um.
 
+## Modo jogo (lançar no campo)
+
+Para lançar o jogo à medida que acontece, no telemóvel:
+
+1. No backoffice, **No campo** mostra os jogos a decorrer e os de hoje (ou, na
+   ficha de qualquer jogo, **Modo jogo**).
+2. **Começar o jogo** põe o relógio a andar. O público passa a ver o jogo "Ao
+   vivo", com o resultado e o minuto.
+3. Em cada equipa: **Golo**, **Amarelo**, **Vermelho** ou **Autogolo**, e depois
+   o jogador (dos convocados da ficha, ou do plantel se a ficha estiver vazia).
+   O minuto vem preenchido e pode ser corrigido. Suspensos e expulsos aparecem
+   assinalados.
+4. **Intervalo** para o relógio; **Começar a 2.ª parte** continua a partir do
+   minuto em que parou; **Terminar o jogo** pede confirmação e fecha a partida.
+   Numa eliminatória empatada, pede logo os penáltis.
+
+O resultado é sempre o dos golos registados. Um engano corrige-se com
+**Anular** (dois toques). O relógio fica guardado na base de dados: bloquear o
+telemóvel ou fechar a app não o estraga.
+
+**Rede fraca:** cada golo ou cartão aparece logo e fica numa fila (guardada no
+telemóvel) até ser gravado. Sem rede, fica "por enviar" e é enviado sozinho
+quando a ligação volta, sem duplicar. Só se pode terminar o jogo com a fila
+vazia. Durante o jogo, o ecrã não se apaga (nos telemóveis que o permitem).
+
 ## App no telemóvel (PWA)
 
 O portal instala-se como uma app, sem loja de aplicações:
@@ -207,6 +232,7 @@ ordem, os ficheiros:
 3. `supabase/migracoes/2026-09-30_fichas_jogo.sql`
 4. `supabase/migracoes/2026-09-30_responsaveis.sql`
 5. `supabase/migracoes/2026-10-01_eliminatorias.sql`
+6. `supabase/migracoes/2026-10-02_modo_jogo.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 
@@ -260,6 +286,7 @@ src/lib/calendario.ts            gerador de jornadas (método do círculo) e dat
 src/lib/suspensoes.ts            suspensões por cartões
 src/lib/formatos.ts              grupos, quadro de eliminatórias e rondas seguintes
 src/lib/partilha.ts              imagens e texto para partilhar
+src/lib/aoVivo.ts                modo jogo: relógio, marcador e expulsões
 src/lib/fichas.ts                fichas de jogo: copiar a anterior, jogos disputados
 src/lib/useDadosCompeticao.ts    carregamento + tempo real + plano B de 30 s
 src/paginas/publico/             portal: tabelas, quadro, jogos, marcadores, equipas e jogadores

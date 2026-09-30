@@ -154,7 +154,7 @@ export function PaginaEquipa() {
   // Posição na tabela da liga ou do grupo
   const grupo = d.grupos.find((g) => g.linhas.some((l) => l.equipaId === equipa.id));
   const linha = (grupo?.linhas ?? d.tabela).find((l) => l.equipaId === equipa.id);
-  const proximo = jogos.find((j) => j.estado === 'agendado');
+  const proximo = jogos.find((j) => j.estado === 'em_curso') ?? jogos.find((j) => j.estado === 'agendado');
 
   const plantel = [...d.jogadores.values()]
     .filter((j) => j.equipa_id === equipa.id)
@@ -181,7 +181,7 @@ export function PaginaEquipa() {
 
       {proximo && (
         <section>
-          <h3 className="mb-2 font-display text-2xl font-semibold">Próximo jogo</h3>
+          <h3 className="mb-2 font-display text-2xl font-semibold">{proximo.estado === 'em_curso' ? 'A jogar agora' : 'Próximo jogo'}</h3>
           <ListaJogos jogos={[proximo]} equipas={d.equipas} linkEquipa={links.equipa} />
         </section>
       )}

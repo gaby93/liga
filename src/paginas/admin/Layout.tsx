@@ -7,6 +7,7 @@ const links = [
   { to: 'competicoes', rotulo: 'Competições' },
   { to: 'equipas', rotulo: 'Equipas' },
   { to: 'jogadores', rotulo: 'Jogadores' },
+  { to: 'campo', rotulo: 'No campo' },
 ];
 
 export default function AdminLayout() {

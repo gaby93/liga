@@ -105,7 +105,7 @@ export function useFichaJogo(jogoId: string | undefined) {
   };
 
   return {
-    jogo, setJogo, competicao, equipas, jogadores, eventos, convocatorias, jogosCompeticao, motivoSuspensao,
+    jogo, setJogo, competicao, equipas, jogadores, eventos, setEventos, convocatorias, jogosCompeticao, motivoSuspensao,
     doJogo, convocados, alternar, acrescentar, limpar, erro, setErro, carregar,
   };
 }

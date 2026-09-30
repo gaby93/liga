@@ -1,4 +1,4 @@
-export type EstadoJogo = 'agendado' | 'terminado' | 'wo_casa' | 'wo_fora' | 'adiado';
+export type EstadoJogo = 'agendado' | 'em_curso' | 'terminado' | 'wo_casa' | 'wo_fora' | 'adiado';
 export type TipoEvento = 'golo' | 'autogolo' | 'amarelo' | 'vermelho';
 export type EstadoCompeticao = 'rascunho' | 'em_curso' | 'terminada';
 export type Formato = 'liga' | 'grupos' | 'eliminatorias';
@@ -32,6 +32,7 @@ export const CRITERIO_LABEL: Record<Criterio, string> = {
 
 export const ESTADO_JOGO_LABEL: Record<EstadoJogo, string> = {
   agendado: 'Agendado',
+  em_curso: 'A decorrer',
   terminado: 'Terminado',
   wo_casa: 'W.O. (faltou a equipa da casa)',
   wo_fora: 'W.O. (faltou a equipa de fora)',
@@ -112,6 +113,10 @@ export interface Jogo {
   grupo: string | null;
   eliminatoria: number | null;
   chave: number | null;
+  /** Modo jogo: parte em curso e relógio (ver lib/aoVivo). */
+  periodo: '1p' | 'intervalo' | '2p' | null;
+  relogio_inicio: string | null;
+  relogio_base: number;
   /** 1.ª ou 2.ª mão (null num jogo único). */
   mao: number | null;
   penaltis_casa: number | null;

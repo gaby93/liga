@@ -1,10 +1,27 @@
 import { Link } from 'react-router-dom';
 import { formatarData } from '../lib/datas';
+import { rotuloAoVivo } from '../lib/aoVivo';
 import { blocosDeJogos } from '../lib/formatos';
 import type { Equipa, Jogo } from '../lib/types';
+import { useAgora } from '../lib/useAgora';
 import { Emblema } from './ui';
 
+/** Jogo a decorrer: resultado e minuto, atualizados sozinhos. */
+function PlacarAoVivo({ jogo }: { jogo: Jogo }) {
+  const agora = useAgora(20000);
+  return (
+    <span className="flex flex-col items-center leading-none">
+      <span className="font-display text-2xl font-bold tabular-nums">{jogo.golos_casa ?? 0}–{jogo.golos_fora ?? 0}</span>
+      <span className="mt-1 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-vermelho">
+        <span aria-hidden className="h-1.5 w-1.5 animate-pulse rounded-full bg-vermelho" />
+        Ao vivo · {rotuloAoVivo(jogo, agora)}
+      </span>
+    </span>
+  );
+}
+
 export function Placar({ jogo }: { jogo: Jogo }) {
+  if (jogo.estado === 'em_curso') return <PlacarAoVivo jogo={jogo} />;
   if (jogo.estado === 'adiado') return <span className="text-sm font-semibold text-vermelho">Adiado</span>;
   if (jogo.estado === 'wo_casa' || jogo.estado === 'wo_fora')
     return <span className="text-sm font-semibold">W.O.</span>;
