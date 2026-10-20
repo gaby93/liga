@@ -103,6 +103,24 @@ describe('planeamento', () => {
     expect(r.quadro).toBeNull();
   });
 
+  it('na liga, cada calendário gerado é um sorteio novo, mas todos jogam com todos', () => {
+    const equipas = ['A', 'B', 'C', 'D', 'E', 'F'].map((e) => p(e));
+    // Gerador previsível, para o teste ser sempre igual
+    const semente = (n: number) => () => { n = (n * 9301 + 49297) % 233280; return n / 233280; };
+    const jornada1 = (n: number) => {
+      const r = planearCalendario('liga', equipas, false, undefined, semente(n));
+      if ('erro' in r) throw new Error(r.erro);
+      return r;
+    };
+    const chaves = new Set([1, 2, 3, 4, 5].map((n) => JSON.stringify(jornada1(n).jogos.filter((j) => j.jornada === 1)
+      .map((j) => [j.casaId, j.foraId].sort().join('-')).sort())));
+    expect(chaves.size).toBeGreaterThan(1);
+    const r = jornada1(7);
+    const pares = new Set(r.jogos.map((j) => [j.casaId, j.foraId].sort().join('-')));
+    expect(r.jogos).toHaveLength(15);
+    expect(pares.size).toBe(15);
+  });
+
   it('recusa grupos incompletos', () => {
     expect(planearCalendario('grupos', [p('A1', 'A'), p('A2', null)], false)).toHaveProperty('erro');
     expect(planearCalendario('grupos', [p('A1', 'A'), p('A2', 'A'), p('B1', 'B')], false))

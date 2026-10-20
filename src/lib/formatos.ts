@@ -5,13 +5,19 @@ import type { EstadoJogo, Formato } from './types';
 
 export const nomesGrupos = (n: number) => Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i));
 
-/** Sorteio: baralha as equipas e distribui-as pelos grupos à vez (A, B, C, A, B, C…). */
-export function sortearGrupos(equipaIds: string[], numGrupos: number, aleatorio = Math.random): Map<string, string> {
-  const baralho = [...equipaIds];
+/** Cópia baralhada da lista (Fisher–Yates). */
+export function baralhar<T>(lista: T[], aleatorio = Math.random): T[] {
+  const baralho = [...lista];
   for (let i = baralho.length - 1; i > 0; i--) {
     const k = Math.floor(aleatorio() * (i + 1));
     [baralho[i], baralho[k]] = [baralho[k], baralho[i]];
   }
+  return baralho;
+}
+
+/** Sorteio: baralha as equipas e distribui-as pelos grupos à vez (A, B, C, A, B, C…). */
+export function sortearGrupos(equipaIds: string[], numGrupos: number, aleatorio = Math.random): Map<string, string> {
+  const baralho = baralhar(equipaIds, aleatorio);
   const grupos = nomesGrupos(numGrupos);
   return new Map(baralho.map((id, i) => [id, grupos[i % numGrupos]]));
 }
@@ -324,8 +330,9 @@ export function planearCalendario(
 ): ResultadoPlano {
   if (participantes.length < 2) return { erro: 'São precisas pelo menos 2 equipas.' };
 
+  // Liga e grupos: as equipas são baralhadas, para cada calendário gerado ser um sorteio novo
   if (formato === 'liga')
-    return { jogos: gerarCalendario(participantes.map((p) => p.equipa_id), idaVolta), quadro: null };
+    return { jogos: gerarCalendario(baralhar(participantes.map((p) => p.equipa_id), aleatorio), idaVolta), quadro: null };
 
   if (formato === 'grupos') {
     if (participantes.some((p) => !p.grupo))
@@ -333,7 +340,7 @@ export function planearCalendario(
     const grupos = [...new Set(participantes.map((p) => p.grupo!))].sort();
     const jogos: JogoPlaneado[] = [];
     for (const g of grupos) {
-      const ids = participantes.filter((p) => p.grupo === g).map((p) => p.equipa_id);
+      const ids = baralhar(participantes.filter((p) => p.grupo === g).map((p) => p.equipa_id), aleatorio);
       if (ids.length < 2) return { erro: `O Grupo ${g} tem só uma equipa.` };
       jogos.push(...gerarCalendario(ids, idaVolta).map((j) => ({ ...j, grupo: g })));
     }
@@ -343,11 +350,7 @@ export function planearCalendario(
   // Eliminatórias: cabeças de série pela ordem indicada, o resto sorteado
   const comSemente = participantes.filter((p) => p.ordem_sorteio != null)
     .sort((a, b) => a.ordem_sorteio! - b.ordem_sorteio!);
-  const semSemente = participantes.filter((p) => p.ordem_sorteio == null);
-  for (let i = semSemente.length - 1; i > 0; i--) {
-    const k = Math.floor(aleatorio() * (i + 1));
-    [semSemente[i], semSemente[k]] = [semSemente[k], semSemente[i]];
-  }
+  const semSemente = baralhar(participantes.filter((p) => p.ordem_sorteio == null), aleatorio);
   const quadro = montarQuadro([...comSemente, ...semSemente].map((p) => p.equipa_id));
   return { jogos: emJogos(primeiraRonda(quadro), 1, regras), quadro: listaQuadro(quadro) };
 }

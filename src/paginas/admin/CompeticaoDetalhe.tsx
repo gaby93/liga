@@ -609,6 +609,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
         </summary>
         <div className="border-t border-linha p-4">
         <p className="mb-3 text-sm text-tinta/70">
+          Os jogos de cada jornada são sorteados: cada vez que gerar o calendário, sai um sorteio novo.
           Com a data preenchida, o calendário é gerado já com dia, hora e campo. Num calendário existente,
           "Marcar datas" só mexe nos jogos agendados; resultados e jogos adiados ficam como estão.
         </p>
