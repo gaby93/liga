@@ -17,7 +17,7 @@ import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import {
   CRITERIO_LABEL, ESTADO_COMPETICAO_LABEL, FORMATO_LABEL,
-  type Competicao, type Criterio, type Equipa, type EstadoCompeticao, type Formato,
+  type CampoJogo, type Competicao, type Criterio, type Equipa, type EstadoCompeticao, type Formato,
 } from '../../lib/types';
 import { useDadosCompeticao } from '../../lib/useDadosCompeticao';
 
@@ -378,10 +378,10 @@ type Executar = (acao: () => PromiseLike<{ error: unknown }>) => Promise<boolean
 type Dados = ReturnType<typeof useDadosCompeticao>;
 
 /** Jogo planeado → colunas da tabela jogos. */
-const paraBase = (j: JogoPlaneado & { dataHora?: string | null }, campo?: string) => ({
+const paraBase = (j: JogoPlaneado & { dataHora?: string | null; campo?: string | null }) => ({
   jornada: j.jornada, casa_id: j.casaId, fora_id: j.foraId, grupo: j.grupo ?? null,
   eliminatoria: j.eliminatoria ?? null, chave: j.chave ?? null, mao: j.mao ?? null,
-  data_hora: j.dataHora ?? null, campo: campo || null,
+  data_hora: j.dataHora ?? null, campo: j.campo || null,
 });
 
 function Regras({ competicao, temJogos, executar }: { competicao: Competicao; temJogos: boolean; executar: Executar }) {
@@ -533,7 +533,15 @@ function Criterios({ competicao, executar }: { competicao: Competicao; executar:
 
 function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
   const competicao = d.competicao!;
-  const [o, setO] = useState({ inicio: '', hora: '15:00', intervaloMin: 60, diasEntreJornadas: 7, campo: '', substituir: false });
+  const [o, setO] = useState({ inicio: '', hora: '15:00', intervaloMin: 60, diasEntreJornadas: 7, substituir: false });
+  // Campos da organização; por defeito usam-se todos, pela ordem definida em Campos
+  const [campos, setCampos] = useState<CampoJogo[]>([]);
+  const [semCampo, setSemCampo] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    supabase.from('campos').select('*').eq('organizacao_id', competicao.organizacao_id).order('ordem').order('nome')
+      .then(({ data }) => setCampos((data ?? []) as CampoJogo[]));
+  }, [competicao.organizacao_id]);
+  const usados = campos.filter((c) => !semCampo.has(c.id)).map((c) => c.nome);
   const [aPartir, setAPartir] = useState<number | null>(null);
   const [filtro, setFiltro] = useState<'porJogar' | 'jogados' | 'todos'>();
   const [aviso, setAviso] = useState<string | null>(null);
@@ -542,7 +550,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
   // Por defeito, a primeira jornada que ainda tem jogos por jogar
   const porJogar = d.jogos.filter((j) => j.estado === 'agendado').map((j) => j.jornada);
   const jornadaInicial = aPartir ?? (porJogar.length ? Math.min(...porJogar) : 1);
-  const opcoes = { inicio: o.inicio, hora: o.hora || '00:00', intervaloMin: o.intervaloMin, diasEntreJornadas: o.diasEntreJornadas };
+  const opcoes = { inicio: o.inicio, hora: o.hora || '00:00', intervaloMin: o.intervaloMin, diasEntreJornadas: o.diasEntreJornadas, campos: usados };
 
   const correr = async (acao: () => Promise<void>) => {
     setOcupado(true);
@@ -555,7 +563,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
     const plano = planearCalendario(competicao.formato, d.participantes, competicao.ida_volta, regrasDaCompeticao(competicao));
     if ('erro' in plano) { setAviso(plano.erro); return; }
     const datados = o.inicio ? atribuirDatas(plano.jogos, { ...opcoes, aPartirJornada: 1 }) : plano.jogos;
-    const p_jogos = datados.map((j) => paraBase(j, o.campo));
+    const p_jogos = datados.map((j) => paraBase(j));
     // Apaga e cria numa só transação: se falhar, o calendário anterior fica intacto
     if (await executar(() => supabase.rpc('gerar_calendario', { p_competicao: competicao.id, p_jogos, p_quadro: plano.quadro })))
       setAviso(`Calendário gerado: ${p_jogos.length} jogos${o.inicio ? ', já com data' : ''}.`);
@@ -565,7 +573,7 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
     const candidatos = d.jogos.filter((j) => j.jornada >= jornadaInicial);
     const alterar = atribuirDatas(candidatos, { ...opcoes, aPartirJornada: jornadaInicial })
       .filter((j) => j.estado === 'agendado' && (o.substituir || !j.data_hora))
-      .map((j) => ({ id: j.id, data_hora: j.dataHora, campo: o.campo || null }));
+      .map((j) => ({ id: j.id, data_hora: j.dataHora, campo: j.campo }));
     if (!alterar.length) {
       setAviso('Não há jogos para marcar. Para mudar datas já marcadas, ative "Substituir datas já marcadas".');
       return;
@@ -604,27 +612,54 @@ function Calendario({ d, executar }: { d: Dados; executar: Executar }) {
           Com a data preenchida, o calendário é gerado já com dia, hora e campo. Num calendário existente,
           "Marcar datas" só mexe nos jogos agendados; resultados e jogos adiados ficam como estão.
         </p>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Campo rotulo="Data da jornada inicial">
             <Entrada type="date" value={o.inicio} onChange={(e) => setO({ ...o, inicio: e.target.value })} />
           </Campo>
           <Campo rotulo="Hora do 1.º jogo">
             <Entrada type="time" value={o.hora} onChange={(e) => setO({ ...o, hora: e.target.value })} />
           </Campo>
-          <Campo rotulo="Minutos entre jogos">
+          <Campo rotulo="Minutos entre horários" ajuda={usados.length > 1 ? `${usados.length} jogos por horário.` : undefined}>
             <Entrada type="number" min={0} value={o.intervaloMin} onChange={(e) => setO({ ...o, intervaloMin: Number(e.target.value) })} />
           </Campo>
           <Campo rotulo="Dias entre jornadas">
             <Entrada type="number" min={1} value={o.diasEntreJornadas} onChange={(e) => setO({ ...o, diasEntreJornadas: Number(e.target.value) })} />
-          </Campo>
-          <Campo rotulo="Campo">
-            <Entrada value={o.campo} placeholder="Opcional" onChange={(e) => setO({ ...o, campo: e.target.value })} />
           </Campo>
           <Campo rotulo="A partir da jornada" ajuda="Só para marcar datas.">
             <Entrada type="number" min={1} value={jornadaInicial} disabled={!d.jogos.length}
               onChange={(e) => setAPartir(e.target.value === '' ? null : Number(e.target.value))} />
           </Campo>
         </div>
+        <fieldset className="mt-4">
+          <legend className="mb-2 text-sm font-semibold">Campos</legend>
+          {campos.length === 0 ? (
+            <p className="text-sm text-tinta/70">
+              Sem campos registados: os jogos ficam um por horário, sem campo.{' '}
+              <Link to="/admin/campos" className="font-semibold text-relva hover:underline">Registar campos</Link>
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {campos.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" className="h-4 w-4 accent-relva" checked={!semCampo.has(c.id)}
+                      onChange={(e) => setSemCampo((s) => {
+                        const n = new Set(s);
+                        if (e.target.checked) n.delete(c.id); else n.add(c.id);
+                        return n;
+                      })} />
+                    {c.nome}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-tinta/60">
+                {usados.length > 1
+                  ? `Em cada jornada, os ${usados.length} primeiros jogos são à mesma hora (${usados.join(', ')}); os seguintes, ${o.intervaloMin} minutos depois.`
+                  : usados.length === 1 ? `Todos os jogos em ${usados[0]}, um por horário.` : 'Nenhum campo escolhido: os jogos ficam sem campo.'}
+              </p>
+            </>
+          )}
+        </fieldset>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           {d.jogos.length > 0 && (
             <>

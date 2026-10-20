@@ -44,30 +44,38 @@ export interface OpcoesDatas {
   inicio: string;
   /** Hora do primeiro jogo de cada jornada, 'HH:MM'. */
   hora: string;
-  /** Minutos entre jogos da mesma jornada. */
+  /** Minutos entre um horário e o seguinte, na mesma jornada. */
   intervaloMin: number;
   /** Dias entre uma jornada e a seguinte. */
   diasEntreJornadas: number;
   /** Jornada que joga na data de início (as anteriores não recebem data). */
   aPartirJornada?: number;
+  /** Campos a usar, por ordem: jogos seguidos da jornada jogam à mesma hora, um em cada campo. */
+  campos?: string[];
 }
 
 /**
- * Atribui data e hora (na hora local) a cada jogo: a jornada N joga
- * (N − aPartirJornada) × diasEntreJornadas dias depois do início, e os jogos
- * da mesma jornada seguem-se, pela ordem da lista, de intervaloMin em intervaloMin.
+ * Atribui data, hora (na hora local) e campo a cada jogo: a jornada N joga
+ * (N − aPartirJornada) × diasEntreJornadas dias depois do início. Com C campos,
+ * os jogos da jornada, pela ordem da lista, ocupam os C campos à mesma hora;
+ * os seguintes passam para o horário seguinte, intervaloMin depois.
+ * Sem campos, é um jogo por horário e o campo fica null.
  */
-export function atribuirDatas<T extends { jornada: number }>(jogos: T[], o: OpcoesDatas): (T & { dataHora: string | null })[] {
+export function atribuirDatas<T extends { jornada: number }>(jogos: T[], o: OpcoesDatas):
+  (T & { dataHora: string | null; campo: string | null })[] {
+  const campos = o.campos?.filter((c) => c.trim()) ?? [];
+  const porHorario = Math.max(1, campos.length);
   const [ano, mes, dia] = o.inicio.split('-').map(Number);
   const [h, min] = o.hora.split(':').map(Number);
   const primeira = o.aPartirJornada ?? 1;
   const posicao = new Map<number, number>();
 
   return jogos.map((j) => {
-    if (j.jornada < primeira) return { ...j, dataHora: null };
+    if (j.jornada < primeira) return { ...j, dataHora: null, campo: null };
     const i = posicao.get(j.jornada) ?? 0;
     posicao.set(j.jornada, i + 1);
-    const data = new Date(ano, mes - 1, dia + (j.jornada - primeira) * o.diasEntreJornadas, h, min + i * o.intervaloMin);
-    return { ...j, dataHora: data.toISOString() };
+    const horario = Math.floor(i / porHorario);
+    const data = new Date(ano, mes - 1, dia + (j.jornada - primeira) * o.diasEntreJornadas, h, min + horario * o.intervaloMin);
+    return { ...j, dataHora: data.toISOString(), campo: campos.length ? campos[i % porHorario] : null };
   });
 }

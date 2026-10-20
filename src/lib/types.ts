@@ -51,6 +51,14 @@ export interface Organizacao {
   nome: string;
 }
 
+/** Campo onde se joga (o nome "Campo" já é o componente de formulário). */
+export interface CampoJogo {
+  id: string;
+  organizacao_id: string;
+  nome: string;
+  ordem: number;
+}
+
 export interface Competicao {
   id: string;
   organizacao_id: string;

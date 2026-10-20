@@ -751,3 +751,41 @@ end $$;
 -- Só quem tem sessão pergunta que organizações gere (as regras de acesso usam-na por dentro)
 revoke execute on function public.minhas_organizacoes() from public, anon;
 grant execute on function public.minhas_organizacoes() to authenticated;
+
+-- ---------- Campos de cada organização ----------
+create table if not exists public.campos (
+  id             uuid primary key default gen_random_uuid(),
+  organizacao_id uuid not null references public.organizacoes(id) on delete cascade,
+  nome           text not null check (length(trim(nome)) > 0),
+  ordem          int not null default 0,
+  criado_em      timestamptz not null default now(),
+  unique (organizacao_id, nome)
+);
+
+alter table public.campos enable row level security;
+
+drop policy if exists "leitura publica" on public.campos;
+create policy "leitura publica" on public.campos for select using (true);
+drop policy if exists "escrita admin" on public.campos;
+create policy "escrita admin" on public.campos for all to authenticated
+  using (public.gere_organizacao(organizacao_id)) with check (public.gere_organizacao(organizacao_id));
+
+-- Mudar o nome de um campo atualiza os jogos da organização que o usam
+create or replace function public.campo_renomeado()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.nome is distinct from old.nome then
+    update public.jogos g set campo = new.nome
+      from public.competicoes c
+     where c.id = g.competicao_id and c.organizacao_id = new.organizacao_id and g.campo = old.nome;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists campo_renomeado on public.campos;
+create trigger campo_renomeado after update of nome on public.campos
+  for each row execute function public.campo_renomeado();

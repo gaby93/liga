@@ -38,8 +38,8 @@ planos gratuitos.
    pontos, golos do W.O., ida e volta e a ordem dos critérios de desempate.
 3. Marcar as **equipas participantes** (e, nos grupos, **Sortear grupos** ou
    escolher o grupo de cada uma). Em **Datas e horários**, indicar a data
-   da primeira jornada, a hora, os minutos entre jogos, os dias entre jornadas
-   e o campo. Carregar em **Gerar calendário**: os jogos saem já com data.
+   da primeira jornada, a hora, os minutos entre horários, os dias entre jornadas
+   e os campos a usar (ver **Campos**, abaixo). Carregar em **Gerar calendário**: os jogos saem já com data.
    O calendário é substituído numa só transação, por isso um erro nunca deixa
    a competição sem jogos.
 4. Mudar o estado para **Em curso**: a competição passa a aparecer no portal.
@@ -48,6 +48,20 @@ planos gratuitos.
 6. Para remarcar a época a meio (ex.: pausa de duas semanas), use **Marcar
    datas nos jogos por jogar** a partir da jornada certa. Só os jogos agendados
    mudam.
+
+## Campos
+
+Em **Campos** (backoffice), cada organização regista os campos onde joga, por
+ordem (ex.: "Campo 1", "Campo 2"). Ao gerar o calendário ou marcar datas,
+escolhem-se os campos a usar, e os jogos de cada jornada dividem-se por eles:
+
+- Com 2 campos, o 1.º e o 2.º jogos são à hora inicial (Campo 1 e Campo 2), o
+  3.º e o 4.º, "minutos entre horários" depois, e assim por diante.
+- Com um campo, ou sem nenhum, é um jogo por horário.
+- Na ficha de cada jogo, o campo pode ser mudado à mão (sugere os da
+  organização, mas aceita outro nome).
+- Mudar o nome de um campo muda-o também nos jogos da organização. Apagar um
+  campo não mexe nos jogos já marcados.
 
 ## Formatos de competição
 
@@ -341,6 +355,7 @@ ordem, os ficheiros:
 6. `supabase/migracoes/2026-10-02_modo_jogo.sql`
 7. `supabase/migracoes/2026-10-03_notificacoes.sql`
 8. `supabase/migracoes/2026-10-04_organizacoes.sql`
+9. `supabase/migracoes/2026-10-20_campos.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 

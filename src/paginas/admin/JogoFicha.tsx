@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { FichaEquipa } from '../../componentes/FichaEquipa';
 import { Aviso, Botao, Campo, Carregando, Emblema, Entrada, Seccao, Seletor } from '../../componentes/ui';
@@ -181,7 +181,8 @@ export default function JogoFicha() {
               onChange={(e) => setJogo({ ...jogo, data_hora: deInputLocal(e.target.value) })} />
           </Campo>
           <Campo rotulo="Campo">
-            <Entrada value={jogo.campo ?? ''} onChange={(e) => setJogo({ ...jogo, campo: e.target.value })} />
+            <EscolherCampo organizacaoId={f.competicao?.organizacao_id} valor={jogo.campo ?? ''}
+              onMudar={(campo) => setJogo({ ...jogo, campo })} />
           </Campo>
           <div className="grid grid-cols-2 gap-3">
             <Campo rotulo={`Golos ${casa?.nome ?? 'casa'}`}>
@@ -268,6 +269,23 @@ export default function JogoFicha() {
           </ul>
         )}
       </Seccao>
+    </>
+  );
+}
+
+/** Campo do jogo: sugere os campos da organização, mas aceita outro nome. */
+function EscolherCampo({ organizacaoId, valor, onMudar }: { organizacaoId?: string; valor: string; onMudar: (v: string) => void }) {
+  const [nomes, setNomes] = useState<string[]>([]);
+  useEffect(() => {
+    if (!organizacaoId) return;
+    supabase.from('campos').select('nome').eq('organizacao_id', organizacaoId).order('ordem').order('nome')
+      .then(({ data }) => setNomes(((data ?? []) as { nome: string }[]).map((c) => c.nome)));
+  }, [organizacaoId]);
+  return (
+    <>
+      <Entrada value={valor} list="campos-organizacao" placeholder={nomes.length ? 'Escolha ou escreva' : undefined}
+        onChange={(e) => onMudar(e.target.value)} />
+      <datalist id="campos-organizacao">{nomes.map((n) => <option key={n} value={n} />)}</datalist>
     </>
   );
 }

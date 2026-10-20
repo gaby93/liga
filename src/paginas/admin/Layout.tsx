@@ -8,6 +8,7 @@ const links = [
   { to: 'competicoes', rotulo: 'Competições' },
   { to: 'equipas', rotulo: 'Equipas' },
   { to: 'jogadores', rotulo: 'Jogadores' },
+  { to: 'campos', rotulo: 'Campos' },
   { to: 'campo', rotulo: 'No campo' },
 ];
 
