@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizar, organizarCompeticoes } from './favoritos';
+import { normalizar, organizarCompeticoes, paginar, pesquisarJogadores } from './favoritos';
 
 const c = (id: string, nome: string, estado = 'em_curso', epoca: string | null = '2026') => ({ id, nome, estado, epoca });
 const lista = [
@@ -32,5 +32,24 @@ describe('página inicial', () => {
 
   it('normaliza texto', () => {
     expect(normalizar('  Taça ÁGUIAS ')).toBe('taca aguias');
+  });
+});
+
+describe('pesquisarJogadores e paginar', () => {
+  const lista = [
+    { nome: 'João Mabunda', numero: 10 }, { nome: 'José Macuácua', numero: 7 }, { nome: 'Ana Sitoe', numero: null },
+  ];
+  it('pesquisa sem acentos, por todas as palavras, ou pelo número', () => {
+    expect(pesquisarJogadores(lista, 'joao').map((j) => j.nome)).toEqual(['João Mabunda']);
+    expect(pesquisarJogadores(lista, 'ma jo').map((j) => j.nome)).toEqual(['João Mabunda', 'José Macuácua']);
+    expect(pesquisarJogadores(lista, '7').map((j) => j.nome)).toEqual(['José Macuácua']);
+    expect(pesquisarJogadores(lista, '  ')).toHaveLength(3);
+  });
+  it('divide em páginas e corrige uma página fora do intervalo', () => {
+    const n = Array.from({ length: 53 }, (_, i) => i);
+    expect(paginar(n, 1, 25)).toMatchObject({ pagina: 1, paginas: 3 });
+    expect(paginar(n, 3, 25).itens).toEqual([50, 51, 52]);
+    expect(paginar(n, 9, 25).pagina).toBe(3);
+    expect(paginar([], 1, 25)).toEqual({ itens: [], pagina: 1, paginas: 1 });
   });
 });

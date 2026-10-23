@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FormularioJogador, abrirJogador, type EdicaoJogador } from '../../componentes/FormularioJogador';
-import { Aviso, Botao, Emblema, Seccao, Seletor } from '../../componentes/ui';
+import { Aviso, Botao, Emblema, Entrada, Paginacao, Seccao, Seletor } from '../../componentes/ui';
+import { paginar, pesquisarJogadores } from '../../lib/favoritos';
 import { useGestao } from '../../lib/gestao';
 import { mensagemErro, supabase } from '../../lib/supabase';
 import type { Equipa, Jogador } from '../../lib/types';
+
+const POR_PAGINA = 25;
 
 export default function Jogadores() {
   const [equipas, setEquipas] = useState<Equipa[]>([]);
@@ -12,6 +15,8 @@ export default function Jogadores() {
   const [edicao, setEdicao] = useState<EdicaoJogador | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const org = useGestao().atual!.id;
+  const [pesquisa, setPesquisa] = useState('');
+  const [pagina, setPagina] = useState(1);
 
   // Só as equipas e os jogadores da organização escolhida
   const carregar = useCallback(async () => {
@@ -25,7 +30,9 @@ export default function Jogadores() {
   }, [org]);
   useEffect(() => { carregar(); }, [carregar]);
   // Ao mudar de organização, o filtro de equipa deixa de fazer sentido
-  useEffect(() => { setFiltro(''); setEdicao(null); }, [org]);
+  useEffect(() => { setFiltro(''); setPesquisa(''); setEdicao(null); }, [org]);
+  // Uma pesquisa ou um filtro novo começa na 1.ª página
+  useEffect(() => { setPagina(1); }, [filtro, pesquisa, org]);
 
   const abrir = async (j?: Jogador) => {
     setErro(null);
@@ -40,7 +47,9 @@ export default function Jogadores() {
   };
 
   const nomeEquipa = new Map(equipas.map((e) => [e.id, e.nome]));
-  const visiveis = filtro ? lista.filter((j) => j.equipa_id === filtro) : lista;
+  const daEquipa = filtro ? lista.filter((j) => j.equipa_id === filtro) : lista;
+  const encontrados = pesquisarJogadores(daEquipa, pesquisa);
+  const pag = paginar(encontrados, pagina, POR_PAGINA);
 
   return (
     <>
@@ -59,11 +68,22 @@ export default function Jogadores() {
         </div>
       }>
         {erro && <div className="mb-4"><Aviso>{erro}</Aviso></div>}
-        {visiveis.length === 0 ? (
-          <p className="text-sm text-tinta/70">Não há jogadores {filtro ? 'nesta equipa' : 'registados'}.</p>
+        {daEquipa.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <Entrada type="search" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)}
+              placeholder="Pesquisar por nome ou número" aria-label="Pesquisar jogadores" className="min-w-0 flex-1" />
+            <span className="text-sm text-tinta/60">
+              {pesquisa.trim() ? `${encontrados.length} de ${daEquipa.length}` : daEquipa.length} {daEquipa.length === 1 ? 'jogador' : 'jogadores'}
+            </span>
+          </div>
+        )}
+        {encontrados.length === 0 ? (
+          <p className="text-sm text-tinta/70">
+            {pesquisa.trim() && daEquipa.length ? `Nenhum jogador corresponde a “${pesquisa.trim()}”.` : `Não há jogadores ${filtro ? 'nesta equipa' : 'registados'}.`}
+          </p>
         ) : (
           <ul className="divide-y divide-linha">
-            {visiveis.map((j) => (
+            {pag.itens.map((j) => (
               <li key={j.id} className="flex flex-wrap items-center gap-3 py-3">
                 <Emblema url={j.foto_url} nome={j.nome} tamanho={36} />
                 <div className="min-w-0 flex-1">
@@ -80,6 +100,7 @@ export default function Jogadores() {
             ))}
           </ul>
         )}
+        <Paginacao pagina={pag.pagina} paginas={pag.paginas} onMudar={(p) => { setPagina(p); window.scrollTo({ top: 0 }); }} />
       </Seccao>
     </>
   );

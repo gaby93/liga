@@ -96,3 +96,15 @@ export function Marca({ texto = 'Bola do Bairro', clara = false }: { texto?: str
     </span>
   );
 }
+
+/** Navegação entre páginas de uma lista: "‹ Anterior · Página 2 de 5 · Seguinte ›". */
+export function Paginacao({ pagina, paginas, onMudar }: { pagina: number; paginas: number; onMudar: (p: number) => void }) {
+  if (paginas <= 1) return null;
+  return (
+    <nav aria-label="Páginas" className="mt-4 flex items-center justify-between gap-3 text-sm">
+      <Botao variante="secundario" disabled={pagina <= 1} onClick={() => onMudar(pagina - 1)}>‹ Anterior</Botao>
+      <span className="text-tinta/70">Página {pagina} de {paginas}</span>
+      <Botao variante="secundario" disabled={pagina >= paginas} onClick={() => onMudar(pagina + 1)}>Seguinte ›</Botao>
+    </nav>
+  );
+}
