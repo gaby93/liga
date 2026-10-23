@@ -32,8 +32,9 @@ planos gratuitos.
 
 ## Fluxo de uso
 
-1. **Equipas** e **Jogadores**: registar tudo (emblemas e fotos são reduzidos
-   automaticamente antes do envio).
+1. **Equipas** e **Jogadores**: registar tudo (os emblemas são reduzidos
+   automaticamente antes do envio). Nos jogadores, a data de nascimento é
+   obrigatória; não há foto de perfil.
 2. **Competições > Nova competição**: escolher o formato (ver abaixo) e definir
    pontos, golos do W.O., ida e volta e a ordem dos critérios de desempate.
 3. Marcar as **equipas participantes** (e, nos grupos, **Sortear grupos** ou
@@ -271,7 +272,7 @@ jogo, para a organização não ter de o fazer por todos.
 2. O responsável abre `/entrar` (há um link no fundo da página inicial),
    escolhe **Criar conta** com esse email e confirma-o no email que recebe.
 3. A partir daí, ao entrar, vai para a **área da equipa**: próximos jogos com a
-   ficha de cada um, e o plantel (acrescentar e editar jogadores, com foto e
+   ficha de cada um, e o plantel (acrescentar e editar jogadores, com os
    dados pessoais).
 
 O responsável **não** pode lançar resultados, golos ou cartões, suspender

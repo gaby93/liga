@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import { carregarImagem } from '../lib/imagens';
 import { mensagemErro, supabase } from '../lib/supabase';
 import type { Equipa, Jogador, JogadorPrivado } from '../lib/types';
 import { Aviso, Botao, Campo, Entrada, Seccao, Seletor } from './ui';
@@ -29,21 +28,19 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId,
   onCancelar: () => void;
 }) {
   const [edicao, setEdicao] = useState<EdicaoJogador>(inicial);
-  const [ficheiro, setFicheiro] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aGuardar, setAGuardar] = useState(false);
 
   const guardar = async (ev: FormEvent) => {
     ev.preventDefault();
+    if (!edicao.data_nasc) { setErro('Indique a data de nascimento.'); return; }
     setAGuardar(true);
     try {
-      const foto_url = ficheiro ? await carregarImagem(ficheiro, 'jogadores') : edicao.foto_url ?? null;
       const publico = {
         nome: edicao.nome!.trim(),
         equipa_id: equipaFixa ?? (edicao.equipa_id || null),
         ...(organizacaoId ? { organizacao_id: organizacaoId } : {}),
         numero: edicao.numero ?? null,
-        foto_url,
         // Só se envia "suspenso" quando o formulário o mostra (admin)
         ...(comSuspensao ? { suspenso: Boolean(edicao.suspenso) } : {}),
       };
@@ -71,6 +68,8 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId,
     }
   };
 
+  const hoje = new Date().toISOString().slice(0, 10);
+
   return (
     <Seccao titulo={edicao.id ? `Editar ${inicial.nome}` : 'Novo jogador'}>
       {erro && <div className="mb-4"><Aviso>{erro}</Aviso></div>}
@@ -90,11 +89,9 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId,
           <Entrada type="number" min={0} max={99} value={edicao.numero ?? ''}
             onChange={(e) => setEdicao({ ...edicao, numero: e.target.value === '' ? null : Number(e.target.value) })} />
         </Campo>
-        <Campo rotulo="Foto">
-          <Entrada type="file" accept="image/*" onChange={(e) => setFicheiro(e.target.files?.[0] ?? null)} />
-        </Campo>
-        <Campo rotulo="Data de nascimento" ajuda="Não aparece no portal público.">
-          <Entrada type="date" value={edicao.data_nasc ?? ''} onChange={(e) => setEdicao({ ...edicao, data_nasc: e.target.value })} />
+        <Campo rotulo="Data de nascimento" ajuda="Obrigatória. Não aparece no portal público.">
+          <Entrada type="date" required min="1940-01-01" max={hoje} value={edicao.data_nasc ?? ''}
+            onChange={(e) => setEdicao({ ...edicao, data_nasc: e.target.value })} />
         </Campo>
         <Campo rotulo="Documento (BI ou passaporte)" ajuda="Não aparece no portal público.">
           <Entrada value={edicao.documento ?? ''} onChange={(e) => setEdicao({ ...edicao, documento: e.target.value })} />
