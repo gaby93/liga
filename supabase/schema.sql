@@ -789,3 +789,16 @@ end $$;
 drop trigger if exists campo_renomeado on public.campos;
 create trigger campo_renomeado after update of nome on public.campos
   for each row execute function public.campo_renomeado();
+
+-- ---------- Regras de inscrição e de convocatória ----------
+alter table public.competicoes add column if not exists max_jogadores int not null default 25;
+alter table public.competicoes add column if not exists idade_minima int not null default 0;
+alter table public.competicoes add column if not exists idade_veterano int not null default 32;
+alter table public.competicoes add column if not exists min_veteranos int not null default 3;
+
+alter table public.competicoes drop constraint if exists competicoes_regras_inscricao;
+alter table public.competicoes add constraint competicoes_regras_inscricao check (
+  max_jogadores between 0 and 200 and idade_minima between 0 and 99
+  and idade_veterano between 0 and 99 and min_veteranos between 0 and 50);
+
+notify pgrst, 'reload schema';

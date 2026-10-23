@@ -64,6 +64,24 @@ escolhem-se os campos a usar, e os jogos de cada jornada dividem-se por eles:
 - Mudar o nome de um campo muda-o também nos jogos da organização. Apagar um
   campo não mexe nos jogos já marcados.
 
+## Inscrições e convocatórias
+
+Nas regras de cada competição (**Configuração**), em "Inscrições e convocatórias":
+
+- **Limite de jogadores por equipa** (por defeito 25; 0 = sem limite).
+- **Idade mínima para inscrever** (por defeito 0 = sem limite), em anos
+  completos no dia da inscrição.
+- **Idade de veterano** (por defeito 32), contada no dia do jogo.
+- **Veteranos mínimos na ficha de jogo** (por defeito 3; 0 desliga).
+
+Ao gravar um jogador (no backoffice ou na área da equipa), a app recusa-o se a
+equipa já estiver no limite ou se ele não tiver a idade mínima. Valem as
+competições da equipa que não terminaram; com várias, a regra mais exigente.
+Na ficha de jogo, os veteranos aparecem assinalados, e há um aviso quando a
+equipa tem menos veteranos convocados do que o mínimo. A **Verificação das
+inscrições**, na configuração, lista as equipas e os jogadores inscritos antes
+das regras que não as cumprem.
+
 ## Formatos de competição
 
 - **Liga**: todos contra todos, uma tabela.
@@ -357,6 +375,7 @@ ordem, os ficheiros:
 7. `supabase/migracoes/2026-10-03_notificacoes.sql`
 8. `supabase/migracoes/2026-10-04_organizacoes.sql`
 9. `supabase/migracoes/2026-10-20_campos.sql`
+10. `supabase/migracoes/2026-10-23_inscricoes.sql`
 
 ## Publicar no Cloudflare Pages (grátis, uso comercial permitido)
 

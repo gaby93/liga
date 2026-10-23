@@ -80,6 +80,14 @@ export interface Competicao {
   terceiro_lugar: boolean;
   amarelos_suspensao: number;
   jogos_suspensao_expulsao: number;
+  /** Jogadores inscritos por equipa (0 = sem limite). */
+  max_jogadores: number;
+  /** Idade mínima para inscrever um jogador (0 = sem limite). */
+  idade_minima: number;
+  /** Idade a partir da qual um jogador é veterano (no dia do jogo). */
+  idade_veterano: number;
+  /** Veteranos mínimos na ficha de cada jogo (0 = desliga). */
+  min_veteranos: number;
   criterios: Criterio[];
 }
 

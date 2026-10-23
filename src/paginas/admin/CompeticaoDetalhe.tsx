@@ -8,6 +8,7 @@ import { TabelaClassificacao } from '../../componentes/TabelaClassificacao';
 import { TabelaMelhores } from '../../componentes/TabelaMelhores';
 import { Aviso, Botao, Campo, Carregando, Entrada, Seccao, Seletor } from '../../componentes/ui';
 import { atribuirDatas } from '../../lib/calendario';
+import { idade } from '../../lib/inscricoes';
 import { descarregar, linhasResultados, nomeFicheiro, paraCsv } from '../../lib/exportar';
 import {
   nomeEliminatoria, nomesGrupos, planearCalendario, planearFaseFinal, planearProximaRonda, regrasDaCompeticao, sortearGrupos,
@@ -160,6 +161,7 @@ export default function CompeticaoDetalhe() {
             <Criterios competicao={c} executar={executar} />
           </div>
           <Participantes d={d} todasEquipas={todasEquipas} executar={executar} />
+          <VerificarInscricoes d={d} />
           <Exportar d={d} />
         </>
       )}
@@ -232,6 +234,58 @@ function Exportar({ d }: { d: Dados }) {
         <Botao disabled={ocupado} onClick={tudo}>{ocupado ? 'A preparar…' : 'Descarregar tudo (JSON)'}</Botao>
         <Botao variante="secundario" onClick={resultados} disabled={!d.jogos.length}>Resultados para o Excel (CSV)</Botao>
       </div>
+    </Seccao>
+  );
+}
+
+/** Equipas e jogadores que não cumprem as regras de inscrição desta competição. */
+function VerificarInscricoes({ d }: { d: Dados }) {
+  const c = d.competicao!;
+  const [plantel, setPlantel] = useState<{ id: string; nome: string; equipa_id: string; data_nasc: string | null }[] | null>(null);
+  const ids = d.participantes.map((p) => p.equipa_id);
+  const chave = ids.join(',');
+
+  // Recarrega quando muda a lista de equipas participantes
+  useEffect(() => {
+    if (!ids.length) { setPlantel([]); return; }
+    (async () => {
+      const j = await supabase.from('jogadores').select('id, nome, equipa_id').in('equipa_id', ids);
+      const lista = (j.data ?? []) as { id: string; nome: string; equipa_id: string }[];
+      const p = lista.length
+        ? await supabase.from('jogadores_privado').select('jogador_id, data_nasc').in('jogador_id', lista.map((x) => x.id))
+        : { data: [] };
+      const datas = new Map(((p.data ?? []) as { jogador_id: string; data_nasc: string | null }[]).map((x) => [x.jogador_id, x.data_nasc]));
+      setPlantel(lista.map((x) => ({ ...x, data_nasc: datas.get(x.id) ?? null })));
+    })();
+  }, [chave]);
+
+  if (!plantel || !ids.length) return null;
+  const problemas: string[] = [];
+  for (const id of ids) {
+    const nome = d.equipas.get(id)?.nome ?? '?';
+    const deles = plantel.filter((j) => j.equipa_id === id);
+    if (c.max_jogadores > 0 && deles.length > c.max_jogadores)
+      problemas.push(`${nome}: ${deles.length} jogadores inscritos (limite ${c.max_jogadores}).`);
+    const novos = c.idade_minima > 0 ? deles.filter((j) => j.data_nasc && idade(j.data_nasc) < c.idade_minima) : [];
+    if (novos.length) problemas.push(`${nome}: abaixo de ${c.idade_minima} anos: ${novos.map((j) => j.nome).join(', ')}.`);
+    const semData = deles.filter((j) => !j.data_nasc);
+    if (semData.length) problemas.push(`${nome}: sem data de nascimento: ${semData.map((j) => j.nome).join(', ')}.`);
+  }
+
+  return (
+    <Seccao titulo="Verificação das inscrições">
+      {problemas.length === 0 ? (
+        <Aviso tipo="info">Todas as equipas cumprem as regras de inscrição desta competição.</Aviso>
+      ) : (
+        <ul className="flex flex-col gap-2 text-sm">
+          {problemas.map((p) => <li key={p} className="rounded-md border border-vermelho/20 bg-vermelho/5 px-3 py-2 text-vermelho">{p}</li>)}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-tinta/60">
+        {c.max_jogadores ? `Limite de ${c.max_jogadores} jogadores por equipa` : 'Sem limite de jogadores por equipa'}
+        {c.idade_minima ? `, idade mínima ${c.idade_minima} anos` : ''}.
+        Os jogadores novos já são recusados ao gravar; esta lista mostra quem foi inscrito antes destas regras.
+      </p>
     </Seccao>
   );
 }
@@ -388,7 +442,8 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
   const [f, setF] = useState(competicao);
   useEffect(() => setF(competicao), [competicao]);
   const num = (k: 'pts_vitoria' | 'pts_empate' | 'pts_derrota' | 'golos_wo' | 'amarelos_suspensao' | 'jogos_suspensao_expulsao'
-    | 'num_grupos' | 'apurados_por_grupo' | 'melhores_terceiros') => ({
+    | 'num_grupos' | 'apurados_por_grupo' | 'melhores_terceiros'
+    | 'max_jogadores' | 'idade_minima' | 'idade_veterano' | 'min_veteranos') => ({
     type: 'number', value: f[k], onChange: (e: { target: { value: string } }) => setF({ ...f, [k]: Number(e.target.value) }),
   });
 
@@ -401,6 +456,7 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
       formato: f.formato, num_grupos: f.num_grupos, apurados_por_grupo: f.apurados_por_grupo,
       melhores_terceiros: f.formato === 'grupos' ? f.melhores_terceiros : 0,
       duas_maos: f.duas_maos, final_duas_maos: f.duas_maos && f.final_duas_maos, terceiro_lugar: f.terceiro_lugar,
+      max_jogadores: f.max_jogadores, idade_minima: f.idade_minima, idade_veterano: f.idade_veterano, min_veteranos: f.min_veteranos,
     }).eq('id', competicao.id));
   };
   const apuradosTotal = f.num_grupos * f.apurados_por_grupo + f.melhores_terceiros;
@@ -446,6 +502,21 @@ function Regras({ competicao, temJogos, executar }: { competicao: Competicao; te
         <Campo rotulo="Jogos de suspensão por expulsão" ajuda="Vermelho ou 2 amarelos no mesmo jogo. 0 desliga.">
           <Entrada min={0} {...num('jogos_suspensao_expulsao')} />
         </Campo>
+        <fieldset className="col-span-2 grid grid-cols-2 gap-4 rounded-md border border-linha p-3">
+          <legend className="px-1 text-sm font-semibold">Inscrições e convocatórias</legend>
+          <Campo rotulo="Limite de jogadores por equipa" ajuda="0 = sem limite.">
+            <Entrada min={0} max={200} {...num('max_jogadores')} />
+          </Campo>
+          <Campo rotulo="Idade mínima para inscrever" ajuda="Anos completos no dia da inscrição. 0 = sem limite.">
+            <Entrada min={0} max={99} {...num('idade_minima')} />
+          </Campo>
+          <Campo rotulo="Idade de veterano" ajuda="A partir desta idade, no dia do jogo.">
+            <Entrada min={0} max={99} {...num('idade_veterano')} />
+          </Campo>
+          <Campo rotulo="Veteranos mínimos na ficha de jogo" ajuda="0 desliga.">
+            <Entrada min={0} max={50} {...num('min_veteranos')} />
+          </Campo>
+        </fieldset>
         {f.formato !== 'eliminatorias' && (
           <label className="col-span-2 flex items-center gap-2 text-sm font-medium">
             <input type="checkbox" className="h-4 w-4 accent-relva" checked={f.ida_volta}

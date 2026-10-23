@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { fichaAnterior } from '../lib/fichas';
+import { contarVeteranos, idade } from '../lib/inscricoes';
 import type { FichaJogo } from '../lib/useFichaJogo';
-import { Botao } from './ui';
+import { Aviso, Botao } from './ui';
 
 /** Ficha de jogo de uma equipa: quem joga, com os suspensos bloqueados. */
 export function FichaEquipa({ f, equipaId, semJogadores, fechada }: {
@@ -21,12 +22,32 @@ export function FichaEquipa({ f, equipaId, semJogadores, fechada }: {
   const anterior = fichaAnterior(f.jogosCompeticao, f.convocatorias, equipaId, jogo.id);
   const aCopiar = anterior?.jogadores.filter((jid) => disponiveis.includes(jid)) ?? [];
 
+  // Veteranos: idade no dia do jogo (ou hoje, se ainda não tem data)
+  const regra = f.competicao;
+  const diaJogo = jogo.data_hora ?? new Date();
+  const idadeVet = regra?.idade_veterano ?? 32;
+  const minimo = regra?.min_veteranos ?? 0;
+  const eVeterano = (id: string) => { const d = f.datasNasc.get(id); return Boolean(d) && idade(d!, diaJogo) >= idadeVet; };
+  // Só se conta quando se conhecem as datas desta equipa (o responsável não vê as do adversário)
+  const conheceDatas = lista.some((j) => f.datasNasc.has(j.id));
+  const vet = contarVeteranos([...marcados], f.datasNasc, idadeVet, diaJogo);
+
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-display text-xl font-semibold">{equipa?.nome}</h3>
-        <span className="text-sm text-tinta/60">{marcados.size} convocados</span>
+        <span className="text-sm text-tinta/60">
+          {marcados.size} convocados{conheceDatas && minimo > 0 ? ` · ${vet.veteranos} veteranos (mín. ${minimo})` : ''}
+        </span>
       </div>
+      {conheceDatas && minimo > 0 && marcados.size > 0 && vet.veteranos < minimo && (
+        <div className="mb-3">
+          <Aviso>
+            Faltam veteranos: a ficha tem {vet.veteranos} {vet.veteranos === 1 ? 'jogador' : 'jogadores'} com {idadeVet} anos ou mais, e o mínimo é {minimo}.
+            {vet.semData > 0 && ` ${vet.semData} convocado${vet.semData === 1 ? '' : 's'} sem data de nascimento não conta${vet.semData === 1 ? '' : 'm'}.`}
+          </Aviso>
+        </div>
+      )}
       {fechada ? (
         <p className="mb-3 text-sm text-tinta/70">{fechada}</p>
       ) : (
@@ -57,6 +78,7 @@ export function FichaEquipa({ f, equipaId, semJogadores, fechada }: {
                     onChange={(e) => f.alternar(j.id, equipaId, e.target.checked)} />
                   <span className="w-6 text-right font-display text-base font-semibold text-relva">{j.numero ?? ''}</span>
                   <span className="flex-1">{j.nome}</span>
+                  {conheceDatas && eVeterano(j.id) && <span className="rounded-full bg-relva/10 px-2 py-0.5 text-xs font-medium text-relva">Veterano</span>}
                   {motivo && <span className="text-xs font-medium text-vermelho">Suspenso: {motivo}</span>}
                   {j.equipa_id !== equipaId && <span className="text-xs text-tinta/60">já não está na equipa</span>}
                 </label>

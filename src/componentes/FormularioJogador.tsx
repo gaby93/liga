@@ -1,7 +1,30 @@
 import { useState, type FormEvent } from 'react';
+import { regrasDaEquipa, verificarInscricao, type RegrasCompeticao } from '../lib/inscricoes';
 import { mensagemErro, supabase } from '../lib/supabase';
 import type { Equipa, Jogador, JogadorPrivado } from '../lib/types';
 import { Aviso, Botao, Campo, Entrada, Seccao, Seletor } from './ui';
+
+/**
+ * Pode este jogador ficar nesta equipa? Verifica o limite de inscritos e a idade
+ * mínima das competições (não terminadas) em que a equipa participa.
+ */
+async function motivoParaRecusar(equipaId: string, nomeEquipa: string, jogadorId: string | undefined, entraNaEquipa: boolean, dataNasc: string) {
+  const [p, n] = await Promise.all([
+    supabase.from('participantes')
+      .select('competicao:competicoes(nome, estado, max_jogadores, idade_minima, idade_veterano, min_veteranos)')
+      .eq('equipa_id', equipaId),
+    (() => {
+      let q = supabase.from('jogadores').select('id', { count: 'exact', head: true }).eq('equipa_id', equipaId);
+      if (jogadorId) q = q.neq('id', jogadorId);
+      return q;
+    })(),
+  ]);
+  if (p.error) throw p.error;
+  if (n.error) throw n.error;
+  const competicoes = ((p.data ?? []) as unknown as { competicao: RegrasCompeticao | null }[])
+    .map((x) => x.competicao).filter((c): c is RegrasCompeticao => Boolean(c));
+  return verificarInscricao({ regras: regrasDaEquipa(competicoes), inscritos: n.count ?? 0, entraNaEquipa, equipa: nomeEquipa, dataNasc });
+}
 
 export type EdicaoJogador = Partial<Jogador> & Partial<Omit<JogadorPrivado, 'jogador_id'>>;
 
@@ -33,9 +56,14 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId,
 
   const guardar = async (ev: FormEvent) => {
     ev.preventDefault();
+    if (!equipaFixa && !edicao.equipa_id) { setErro('Escolha a equipa do jogador.'); return; }
     if (!edicao.data_nasc) { setErro('Indique a data de nascimento.'); return; }
     setAGuardar(true);
     try {
+      const equipaId = (equipaFixa ?? edicao.equipa_id)!;
+      const nomeEquipa = equipas.find((e) => e.id === equipaId)?.nome ?? 'A equipa';
+      const recusa = await motivoParaRecusar(equipaId, nomeEquipa, edicao.id, !edicao.id || inicial.equipa_id !== equipaId, edicao.data_nasc);
+      if (recusa) { setErro(recusa); return; }
       const publico = {
         nome: edicao.nome!.trim(),
         equipa_id: equipaFixa ?? (edicao.equipa_id || null),
@@ -78,9 +106,9 @@ export function FormularioJogador({ inicial, equipas, equipaFixa, organizacaoId,
           <Entrada required value={edicao.nome ?? ''} onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })} />
         </Campo>
         {!equipaFixa && (
-          <Campo rotulo="Equipa">
-            <Seletor value={edicao.equipa_id ?? ''} onChange={(e) => setEdicao({ ...edicao, equipa_id: e.target.value || null })}>
-              <option value="">Sem equipa</option>
+          <Campo rotulo="Equipa" ajuda={equipas.length ? undefined : 'Crie primeiro as equipas, em Equipas.'}>
+            <Seletor required value={edicao.equipa_id ?? ''} onChange={(e) => setEdicao({ ...edicao, equipa_id: e.target.value || null })}>
+              <option value="" disabled>Escolha a equipa</option>
               {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
             </Seletor>
           </Campo>

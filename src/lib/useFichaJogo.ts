@@ -17,6 +17,8 @@ export function useFichaJogo(jogoId: string | undefined) {
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [jogosCompeticao, setJogosCompeticao] = useState<Jogo[]>([]);
   const [competicao, setCompeticao] = useState<Competicao | null>(null);
+  // Datas de nascimento (para os veteranos): só as que quem está a ver pode ler
+  const [datasNasc, setDatasNasc] = useState<Map<string, string | null>>(new Map());
   const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
@@ -57,7 +59,12 @@ export function useFichaJogo(jogoId: string | undefined) {
     const emFalta = [...new Set((cv.data ?? []).filter((x) => x.jogo_id === jg.id).map((x) => x.jogador_id))]
       .filter((jid) => !plantel.some((x) => x.id === jid));
     const extra = emFalta.length ? ((await supabase.from('jogadores').select('*').in('id', emFalta)).data ?? []) as Jogador[] : [];
-    setJogadores([...plantel, ...extra]);
+    const todos = [...plantel, ...extra];
+    setJogadores(todos);
+    const nasc = todos.length
+      ? await supabase.from('jogadores_privado').select('jogador_id, data_nasc').in('jogador_id', todos.map((x) => x.id))
+      : { data: [] };
+    setDatasNasc(new Map(((nasc.data ?? []) as { jogador_id: string; data_nasc: string | null }[]).map((x) => [x.jogador_id, x.data_nasc])));
     setEventos((ev.data ?? []) as Evento[]);
   }, [jogoId]);
   useEffect(() => { carregar(); }, [carregar]);
@@ -105,7 +112,7 @@ export function useFichaJogo(jogoId: string | undefined) {
   };
 
   return {
-    jogo, setJogo, competicao, equipas, jogadores, eventos, setEventos, convocatorias, jogosCompeticao, motivoSuspensao,
+    jogo, setJogo, competicao, equipas, jogadores, datasNasc, eventos, setEventos, convocatorias, jogosCompeticao, motivoSuspensao,
     doJogo, convocados, alternar, acrescentar, limpar, erro, setErro, carregar,
   };
 }
